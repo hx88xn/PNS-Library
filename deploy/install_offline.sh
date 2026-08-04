@@ -17,6 +17,26 @@ SERVICE_USER="${PDAS_USER:-pdas}"
 
 [[ $EUID -eq 0 ]] || { echo "Run with sudo." >&2; exit 1; }
 
+# This script lives beside the unpacked bundle, not in the git repo. Running it
+# from deploy/ fails several steps in with a bare `cp: cannot stat` — say so up
+# front instead.
+for REQUIRED in app wheels; do
+  [[ -d "$HERE/$REQUIRED" ]] && continue
+  cat >&2 <<EOF
+Missing $HERE/$REQUIRED
+
+Run this from the directory where the bundle was unpacked, not from the repo:
+
+    cd <bundle-dir>
+    tar -xf  pdas-runtime-*.tar
+    tar -xzf pdas-app-*.tar.gz
+    sudo ./install_offline.sh
+
+That directory should contain app/, wheels/, ollama/ and client/.
+EOF
+  exit 1
+done
+
 echo "Installing to $PREFIX"
 
 # ── 0. Verify the transfer ───────────────────────────────────────────────
