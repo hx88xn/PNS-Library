@@ -18,7 +18,7 @@ ok()   { echo "  [ OK ] $1"; PASS=$((PASS+1)); }
 bad()  { echo "  [FAIL] $1"; echo "         → $2"; FAIL=$((FAIL+1)); }
 warn() { echo "  [WARN] $1"; echo "         → $2"; WARN=$((WARN+1)); }
 
-echo "PDAS preflight"
+echo "PDAS preflight  (role: ${PDAS_ROLE:-server})"
 echo "=============="
 echo
 
@@ -69,7 +69,11 @@ fi
 # ── GPU ──────────────────────────────────────────────────────────────────
 echo
 echo "GPU"
-if command -v nvidia-smi >/dev/null && nvidia-smi >/dev/null 2>&1; then
+if [[ "${PDAS_ROLE:-server}" == "build" ]]; then
+  # A build machine downloads models, it never runs them. Absence of a GPU
+  # here says nothing about the deployment.
+  echo "  [SKIP] build machine — GPU not required for producing the bundle"
+elif command -v nvidia-smi >/dev/null && nvidia-smi >/dev/null 2>&1; then
   GPU="$(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null | head -1)"
   ok "nvidia-smi works: $GPU"
 
