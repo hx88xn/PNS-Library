@@ -16,8 +16,31 @@ STAGE="$ROOT/offline"
 STAMP="$(date -u +%Y%m%d)"
 ARCHIVE="$ROOT/pdas-offline-$STAMP.tar.gz"
 
-[[ -d "$STAGE/wheels" ]] || { echo "Missing $STAGE/wheels — run fetch_wheels.sh" >&2; exit 1; }
-[[ -d "$STAGE/ollama/models" ]] || { echo "Missing $STAGE/ollama/models — run fetch_models.sh" >&2; exit 1; }
+[[ -d "$STAGE/wheels" ]] || {
+  cat >&2 <<'EOF'
+Missing offline/wheels.
+
+Either run ./deploy/fetch_wheels.sh on a Linux machine matching the server, or
+download the pdas-wheels-* artifact from the "Build offline bundle" GitHub
+Actions run and unzip it to offline/wheels/.
+EOF
+  exit 1
+}
+
+# Models are optional here so a bundle can be assembled from CI artifacts and
+# have the 5 GB model store dropped in separately — that split is often what
+# the transfer channel actually allows.
+if [[ ! -d "$STAGE/ollama/models" ]]; then
+  if [[ "${ALLOW_NO_MODELS:-0}" == "1" ]]; then
+    echo "WARNING: no models in the bundle. The server will need offline/ollama/"
+    echo "         supplied separately, or it will start with no models loaded."
+    mkdir -p "$STAGE/ollama"
+  else
+    echo "Missing $STAGE/ollama/models — run fetch_models.sh," >&2
+    echo "or set ALLOW_NO_MODELS=1 to build a bundle without them." >&2
+    exit 1
+  fi
+fi
 
 # ── Backend source ───────────────────────────────────────────────────────
 rm -rf "$STAGE/app"

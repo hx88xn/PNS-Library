@@ -1,0 +1,130 @@
+name: Build offline bundle
+
+# Produces the two artifacts that are painful to build by hand:
+#
+#   pdas-wheels-*    the Python dependency set, built natively on the same
+#                    Ubuntu release as the server — no --platform guesswork
+#   pdas-client-*    the Windows installer for analysts' PCs
+#
+# The models are deliberately NOT built here. They are ~5 GB pulled from
+# Ollama's registry, which would make every run slow and every artifact
+# expire in 90 days for no benefit. Fetch those once with
+# ./deploy/fetch_models.sh on any connected Linux machine.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ubuntu_version:
+        description: 'Ubuntu release to match your server (lsb_release -a on the VM)'
+        required: true
+        default: '24.04'
+        type: choice
+        options: ['24.04', '22.04']
+  push:
+    tags: ['v*']
+
+jobs:
+  wheels:
+    name: Wheels (Ubuntu ${{ inputs.ubuntu_version || '24.04' }})
+    runs-on: ubuntu-${{ inputs.ubuntu_version || '24.04' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Record the build platform
+        id: platform
+        run: |
+          echo "Python: $(python3 --version)"
+          echo "Ubuntu: $(lsb_release -ds)"
+          PY=$(python3 -c 'import sys;print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+          echo "py=$PY" >> "$GITHUB_OUTPUT"
+          # The server must run this same Python minor version. Wheel filenames
+          # encode it, and a mismatch fails at install with a message that
+          # reads like a network fault.
+          echo "::notice::Wheels target Python $PY on Ubuntu ${{ inputs.ubuntu_version || '24.04' }}. The server must match."
+
+      - name: Download wheels
+        run: |
+          python3 -m venv /tmp/venv
+          /tmp/venv/bin/pip install --quiet --upgrade pip
+          mkdir -p offline/wheels
+          # pip itself goes in the bundle: the offline venv is created
+          # --without-pip and bootstrapped from these.
+          /tmp/venv/bin/pip download --dest offline/wheels --only-binary=:all: pip setuptools wheel
+          /tmp/venv/bin/pip download --dest offline/wheels --only-binary=:all: -r backend/requirements.in
+
+      - name: Reject source distributions
+        run: |
+          # An sdist would try to compile on the offline box, where there is
+          # no compiler and no network to fetch build dependencies.
+          if find offline/wheels \( -name '*.tar.gz' -o -name '*.zip' \) | grep -q .; then
+            echo "::error::Source distributions present — these cannot install offline:"
+            find offline/wheels \( -name '*.tar.gz' -o -name '*.zip' \) -exec basename {} \;
+            exit 1
+          fi
+          echo "$(find offline/wheels -name '*.whl' | wc -l) wheels, $(du -sh offline/wheels | cut -f1)"
+
+      - name: Prove they install with no network
+        run: |
+          # The real test: --no-index means pip cannot reach PyPI. If the wheel
+          # set is incomplete this fails here rather than on the server.
+          python3 -m venv /tmp/offline-test
+          /tmp/offline-test/bin/pip install --no-index --find-links offline/wheels \
+            --quiet pip setuptools wheel
+          /tmp/offline-test/bin/pip install --no-index --find-links offline/wheels \
+            --quiet -r backend/requirements.in
+          /tmp/offline-test/bin/python -c "
+          import fastapi, faiss, fitz, docx, openpyxl, ezdxf, rank_bm25, jwt, argon2, typer, yaml
+          print('all imports resolve from the offline wheel set')"
+
+      - name: Checksums
+        run: |
+          cd offline/wheels && sha256sum *.whl > SHA256SUMS
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pdas-wheels-ubuntu${{ inputs.ubuntu_version || '24.04' }}-py${{ steps.platform.outputs.py }}
+          path: offline/wheels
+          retention-days: 90
+
+  client:
+    name: Windows client installer
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Build installer
+        run: npm run dist -- --win --publish never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pdas-client-windows
+          path: |
+            release/*.exe
+            release/*.blockmap
+          retention-days: 90
+
+  backend-source:
+    name: Backend source
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stage
+        run: |
+          mkdir -p stage/app
+          cp -r backend/pdas backend/evals stage/app/
+          cp backend/requirements.in backend/pyproject.toml stage/app/
+          cp deploy/install_offline.sh deploy/pdas.service deploy/ollama.service stage/
+          cp README-DEPLOY.md stage/ || true
+          find stage -name '__pycache__' -type d -prune -exec rm -rf {} + || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pdas-backend-source
+          path: stage
+          retention-days: 90

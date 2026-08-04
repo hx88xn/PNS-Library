@@ -77,9 +77,12 @@ if command -v nvidia-smi >/dev/null && nvidia-smi >/dev/null 2>&1; then
   if [[ -n "$VRAM_MB" && "$VRAM_MB" -lt 6000 ]]; then
     warn "only ${VRAM_MB} MB of VRAM" "qwen3.5:4b + bge-m3 need ~4.4 GB resident"
   fi
+elif [[ "${PDAS_ALLOW_CPU:-0}" == "1" ]]; then
+  warn "no GPU — running on CPU" \
+       "Acknowledged via PDAS_ALLOW_CPU=1. Everything works, but generation drops to ~3-8 tok/s. Fine for rehearsing the install; not viable for daily use."
 else
   bad "nvidia-smi not working" \
-      "Under WSL2 install a current NVIDIA driver on WINDOWS, not inside the VM. Without this Ollama runs on CPU at 2-4 tok/s."
+      "Under WSL2 install a current NVIDIA driver on WINDOWS, not inside the VM. Without it Ollama runs on CPU at ~3-8 tok/s. To proceed anyway on a test machine: PDAS_ALLOW_CPU=1 ./preflight.sh"
 fi
 
 # ── Memory ───────────────────────────────────────────────────────────────
