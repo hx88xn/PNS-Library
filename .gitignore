@@ -2,3 +2,24 @@ node_modules/
 dist/
 release/
 .DS_Store
+
+# Python
+backend/.venv/
+__pycache__/
+*.egg-info/
+*.pyc
+
+# Runtime state — never commit this.
+# Holds the SQLite database (including password hashes), the FAISS index, the
+# query log, and copies of every ingested document. Once real documents are
+# ingested this is classified material, and git history is forever.
+backend/var/
+
+# Generated locally, not source
+backend/sample-docs/
+
+# Offline bundle staging: wheels, model blobs, the Ollama runtime.
+# Gigabytes, and all of it re-fetchable.
+offline/
+*.tar.gz
+*.tar.zst
