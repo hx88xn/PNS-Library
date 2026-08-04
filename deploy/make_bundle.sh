@@ -1,44 +1,69 @@
 #!/usr/bin/env bash
 #
-# Assemble everything into one archive to carry through the transfer channel.
+# Assemble the transfer artifacts.
 #
-#   ./deploy/make_bundle.sh
+#   ./deploy/make_bundle.sh                 two archives: runtime + app
+#   ./deploy/make_bundle.sh --app-only      just the app archive (~1 MB)
+#   ./deploy/make_bundle.sh --split 1G      also split the runtime into parts
 #
-# Expects fetch_wheels.sh and fetch_models.sh to have run already. The Electron
-# installer is optional here — build it on any connected machine with
-# `npm run dist -- --win` and drop the .exe into offline/client/ before running
-# this, or transfer it separately.
+# Deliberately TWO archives, not one:
+#
+#   pdas-runtime-*.tar   ~5 GB   wheels, Ollama runtime, model blobs
+#                                Transfer once. Changes only when you change
+#                                model or dependency versions.
+#   pdas-app-*.tar.gz    ~1 MB   backend source, install script, service units
+#                                Transfer on every code change.
+#
+# Over a slow link that difference is the whole game: after the first transfer,
+# shipping a fix costs a megabyte instead of five gigabytes.
+#
+# The runtime archive is UNCOMPRESSED on purpose. Model blobs are quantised
+# weights and the Ollama runtime is already zstd — gzipping them burns minutes
+# of CPU for a percent or two, and on a machine you are waiting on that is a
+# bad trade.
 
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STAGE="$ROOT/offline"
 STAMP="$(date -u +%Y%m%d)"
-ARCHIVE="$ROOT/pdas-offline-$STAMP.tar.gz"
 
-[[ -d "$STAGE/wheels" ]] || {
-  cat >&2 <<'EOF'
+APP_ARCHIVE="$ROOT/pdas-app-$STAMP.tar.gz"
+RUNTIME_ARCHIVE="$ROOT/pdas-runtime-$STAMP.tar"
+
+APP_ONLY=0
+SPLIT_SIZE=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --app-only) APP_ONLY=1; shift ;;
+    --split)    SPLIT_SIZE="${2:?--split needs a size, e.g. 1G}"; shift 2 ;;
+    *) echo "Unknown option: $1" >&2; exit 1 ;;
+  esac
+done
+
+if (( ! APP_ONLY )); then
+  [[ -d "$STAGE/wheels" ]] || {
+    cat >&2 <<'EOF'
 Missing offline/wheels.
 
 Either run ./deploy/fetch_wheels.sh on a Linux machine matching the server, or
 download the pdas-wheels-* artifact from the "Build offline bundle" GitHub
 Actions run and unzip it to offline/wheels/.
 EOF
-  exit 1
-}
-
-# Models are optional here so a bundle can be assembled from CI artifacts and
-# have the 5 GB model store dropped in separately — that split is often what
-# the transfer channel actually allows.
-if [[ ! -d "$STAGE/ollama/models" ]]; then
-  if [[ "${ALLOW_NO_MODELS:-0}" == "1" ]]; then
-    echo "WARNING: no models in the bundle. The server will need offline/ollama/"
-    echo "         supplied separately, or it will start with no models loaded."
-    mkdir -p "$STAGE/ollama"
-  else
-    echo "Missing $STAGE/ollama/models — run fetch_models.sh," >&2
-    echo "or set ALLOW_NO_MODELS=1 to build a bundle without them." >&2
     exit 1
+  }
+
+  if [[ ! -d "$STAGE/ollama/models" ]]; then
+    if [[ "${ALLOW_NO_MODELS:-0}" == "1" ]]; then
+      echo "WARNING: no models in the runtime archive. The server will need"
+      echo "         offline/ollama/ supplied separately."
+      mkdir -p "$STAGE/ollama"
+    else
+      echo "Missing $STAGE/ollama/models — run fetch_models.sh," >&2
+      echo "or set ALLOW_NO_MODELS=1 to build without them." >&2
+      exit 1
+    fi
   fi
 fi
 
@@ -72,21 +97,72 @@ transfer it separately.
 EOF
 fi
 
-# ── Checksums ────────────────────────────────────────────────────────────
-# Multi-gigabyte transfers over removable media do corrupt files, silently and
-# occasionally. Verifying on arrival is not optional.
-echo "Computing checksums…"
-( cd "$STAGE" && find . -type f ! -name SHA256SUMS -exec sha256sum {} + > SHA256SUMS )
+# ── App archive: small, transferred often ────────────────────────────────
+# Checksums for just the app files, so this archive verifies on its own.
+( cd "$STAGE" && find app client install_offline.sh *.service *.md -type f 2>/dev/null \
+    | sort | xargs sha256sum > APP_SHA256SUMS )
 
-# ── Archive ──────────────────────────────────────────────────────────────
-echo "Creating $ARCHIVE"
-tar -czf "$ARCHIVE" -C "$ROOT" offline
+echo "Creating $(basename "$APP_ARCHIVE")"
+tar -czf "$APP_ARCHIVE" -C "$STAGE" \
+  app client install_offline.sh pdas.service ollama.service APP_SHA256SUMS \
+  $( [[ -f "$STAGE/README-DEPLOY.md" ]] && echo README-DEPLOY.md )
 
-echo
-echo "Bundle:   $ARCHIVE"
-echo "Size:     $(du -h "$ARCHIVE" | cut -f1)"
-echo "Contents:"
-du -sh "$STAGE"/* | sed 's/^/  /'
-echo
-echo "Verify after transfer with:"
-echo "  tar -xzf $(basename "$ARCHIVE") && cd offline && sha256sum -c SHA256SUMS"
+echo "  $(du -h "$APP_ARCHIVE" | cut -f1)"
+
+# ── Runtime archive: large, transferred once ─────────────────────────────
+if (( ! APP_ONLY )); then
+  echo
+  echo "Computing runtime checksums (this walks ~5 GB)…"
+  ( cd "$STAGE" && find wheels ollama -type f 2>/dev/null \
+      | sort | xargs sha256sum > RUNTIME_SHA256SUMS )
+
+  echo "Creating $(basename "$RUNTIME_ARCHIVE") — uncompressed, models do not compress"
+  tar -cf "$RUNTIME_ARCHIVE" -C "$STAGE" wheels ollama RUNTIME_SHA256SUMS
+
+  echo "  $(du -h "$RUNTIME_ARCHIVE" | cut -f1)"
+
+  # Splitting turns a failed 5 GB upload into a failed 1 GB part. Worth it on
+  # any link you do not trust, and Drive handles the parts individually.
+  if [[ -n "$SPLIT_SIZE" ]]; then
+    echo
+    echo "Splitting into $SPLIT_SIZE parts…"
+    # Plain -b with a prefix only: --additional-suffix and -d are GNU-only, and
+    # the default aa/ab/ac suffixes sort correctly for `cat` on every platform.
+    split -b "$SPLIT_SIZE" "$RUNTIME_ARCHIVE" "$RUNTIME_ARCHIVE.part."
+    sha256sum "$RUNTIME_ARCHIVE".part.* > "$RUNTIME_ARCHIVE.parts.sha256"
+    rm -f "$RUNTIME_ARCHIVE"
+    echo "  $(ls "$RUNTIME_ARCHIVE".part.* | wc -l | tr -d ' ') parts"
+    ls -lh "$RUNTIME_ARCHIVE".part.* | awk '{print "    "$9"  "$5}'
+  fi
+fi
+
+# ── What to do next ──────────────────────────────────────────────────────
+cat <<EOF
+
+────────────────────────────────────────────────────────────────────
+FIRST INSTALL — transfer both, unpack into the same directory:
+
+  tar -xf  pdas-runtime-$STAMP.tar
+  tar -xzf pdas-app-$STAMP.tar.gz
+  sha256sum -c RUNTIME_SHA256SUMS
+  sha256sum -c APP_SHA256SUMS
+  sudo ./install_offline.sh
+
+LATER UPDATES — app archive only (~$(du -h "$APP_ARCHIVE" | cut -f1)):
+
+  ./deploy/make_bundle.sh --app-only
+  # on the server, in the same directory as before:
+  tar -xzf pdas-app-<date>.tar.gz
+  sudo ./install_offline.sh
+EOF
+
+if [[ -n "$SPLIT_SIZE" ]]; then
+  cat <<EOF
+
+REASSEMBLE the split runtime before unpacking:
+
+  sha256sum -c pdas-runtime-$STAMP.tar.parts.sha256
+  cat pdas-runtime-$STAMP.tar.part.* > pdas-runtime-$STAMP.tar
+EOF
+fi
+echo "────────────────────────────────────────────────────────────────────"
