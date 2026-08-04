@@ -140,6 +140,22 @@ fi
 
 chown -R "$SERVICE_USER:$SERVICE_USER" "$PREFIX"
 
+# ── 4b. CLI wrapper ──────────────────────────────────────────────────────
+# systemd reads pdas.env through EnvironmentFile; a shell does not. Without
+# this the CLI falls back to the relative default data dir and tries to create
+# ./var in whatever directory you happen to be standing in — which fails as
+# the service account and looks like a permissions bug rather than a config
+# one. The wrapper makes `pdas` behave identically either way.
+cat > /usr/local/bin/pdas <<'WRAPPER'
+#!/bin/sh
+# PDAS CLI — loads the deployment config, then runs the real entry point.
+set -a
+[ -r /opt/pdas/pdas.env ] && . /opt/pdas/pdas.env
+set +a
+exec /opt/pdas/venv/bin/pdas "$@"
+WRAPPER
+chmod 755 /usr/local/bin/pdas
+
 # ── 5. Services ──────────────────────────────────────────────────────────
 install -m 644 "$HERE/ollama.service" /etc/systemd/system/ollama.service
 install -m 644 "$HERE/pdas.service" /etc/systemd/system/pdas.service
@@ -159,9 +175,13 @@ Installed.
 
 Next:
   1. Create an account:
-       sudo -u $SERVICE_USER $PREFIX/venv/bin/pdas adduser PN-00000 --role admin
+       sudo -u $SERVICE_USER pdas adduser PN-00000 --role admin
   2. Ingest documents:
-       sudo -u $SERVICE_USER $PREFIX/venv/bin/pdas ingest /path/to/documents
+       sudo -u $SERVICE_USER pdas ingest /path/to/documents
+
+     Use plain 'pdas' (the wrapper at /usr/local/bin/pdas), not the venv path
+     directly — it loads $PREFIX/pdas.env so the CLI and the service read the
+     same data directory.
   3. Confirm the GPU is in use:
        nvidia-smi          # the ollama process should appear
   4. Make the service reachable from client PCs — see README-DEPLOY.md,
