@@ -129,7 +129,13 @@ if (( ! APP_ONLY )); then
     # Plain -b with a prefix only: --additional-suffix and -d are GNU-only, and
     # the default aa/ab/ac suffixes sort correctly for `cat` on every platform.
     split -b "$SPLIT_SIZE" "$RUNTIME_ARCHIVE" "$RUNTIME_ARCHIVE.part."
-    sha256sum "$RUNTIME_ARCHIVE".part.* > "$RUNTIME_ARCHIVE.parts.sha256"
+
+    # Record BASENAMES, not full paths. sha256sum writes whatever path it was
+    # given, so absolute paths from this build machine would be meaningless on
+    # the target — verification fails there with "could not be read", which
+    # looks like a corrupt transfer rather than a bad manifest.
+    ARCHIVE_NAME="$(basename "$RUNTIME_ARCHIVE")"
+    ( cd "$ROOT" && sha256sum "$ARCHIVE_NAME".part.* > "$ARCHIVE_NAME.parts.sha256" )
     rm -f "$RUNTIME_ARCHIVE"
     echo "  $(ls "$RUNTIME_ARCHIVE".part.* | wc -l | tr -d ' ') parts"
     ls -lh "$RUNTIME_ARCHIVE".part.* | awk '{print "    "$9"  "$5}'
