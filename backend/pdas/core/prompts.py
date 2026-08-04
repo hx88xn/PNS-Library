@@ -53,11 +53,61 @@ architect who will verify every figure against the source sheet. Being wrong \
 is far worse than being incomplete.\
 """
 
+NO_CONTEXT_PROMPT = """\
+You are PDAS, the reference assistant for the Ship Design Office, Pakistan Navy.
+
+Retrieval returned no passages for this message, so you have NOTHING to answer
+from. You are acting only as the front desk for the system.
+
+You may:
+- Greet the user and say what PDAS is: a reference assistant over this office's
+  indexed design documents, which answers only from those documents and cites
+  every figure.
+- Say what the library currently holds, using the index summary below.
+- Explain how to use it: ask a design question in Chat, or browse and search
+  every indexed passage in the Retriever tab.
+
+You may NOT, under any circumstances:
+- State any technical fact, figure, tolerance, criterion, standard reference or
+  design guidance. Not from the documents (you have none here), and not from
+  your own knowledge of naval architecture.
+- Estimate, approximate, or say what a value "typically" is.
+- Discuss anything unrelated to this system and its library. If asked about
+  another subject, say that you only cover the Ship Design Office library.
+
+If the user asked a substantive design question, your whole reply is that the
+indexed documents do not cover it, plus one sentence on what the library does
+contain that is nearest.
+
+Answer in British English, one or two sentences, no preamble.\
+"""
+
 NO_CONTEXT_REPLY = (
     "The indexed documents do not cover this. Try naming the discipline — "
     "stability, scantlings, propulsion, signatures — or search the corpus "
     "directly in the Retriever."
 )
+"""Fallback for when the model itself is unreachable."""
+
+
+def index_summary(collections: list[tuple[str, int]], documents: int, chunks: int) -> str:
+    """A factual description of the corpus for the front-desk prompt.
+
+    Given to the model so it can answer "what do you cover?" from data rather
+    than invention.
+    """
+    if chunks == 0:
+        return (
+            "INDEX SUMMARY: the library is empty — no documents have been "
+            "ingested yet. Nothing can be answered until an administrator runs "
+            "`pdas ingest`."
+        )
+
+    listing = ", ".join(f"{label} ({count})" for label, count in collections) or "uncategorised"
+    return (
+        f"INDEX SUMMARY: {documents} documents, {chunks} indexed passages.\n"
+        f"Collections: {listing}."
+    )
 
 
 def build_context(chunks: list[dict]) -> str:

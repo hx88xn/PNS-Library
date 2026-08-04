@@ -17,7 +17,13 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
 from ..core.ollama import OllamaError
-from ..core.prompts import NO_CONTEXT_REPLY, SYSTEM_PROMPT, build_user_message
+from ..core.prompts import (
+    NO_CONTEXT_PROMPT,
+    NO_CONTEXT_REPLY,
+    SYSTEM_PROMPT,
+    build_user_message,
+    index_summary,
+)
 from ..core.retrieval import retrieve
 from ..schemas import ChatRequest, Citation
 from ..state import AppState
@@ -73,10 +79,30 @@ async def _generate(
         yield _sse("error", {"detail": str(exc)})
         return
 
-    # Nothing retrieved: say so directly rather than asking the model to
-    # improvise a refusal it might not honour.
+    # Nothing retrieved — greetings, "what can you do", or a question the
+    # corpus simply does not touch. Answer as the front desk, on a prompt that
+    # has no passages and is forbidden from stating any technical fact. The
+    # grounding guarantee is unchanged: nothing substantive is ever produced
+    # without a citation.
     if not hits:
-        yield _sse("token", {"text": NO_CONTEXT_REPLY})
+        messages = [
+            {"role": "system", "content": NO_CONTEXT_PROMPT},
+            {"role": "system", "content": _corpus_summary(app_state)},
+            *_trim_history(request.history),
+            {"role": "user", "content": question},
+        ]
+
+        produced = 0
+        try:
+            async for token in app_state.ollama.chat_stream(messages):
+                produced += len(token)
+                yield _sse("token", {"text": token})
+        except OllamaError:
+            produced = 0  # fall through to the canned reply
+
+        if produced == 0:
+            yield _sse("token", {"text": NO_CONTEXT_REPLY})
+
         yield _sse("citations", {"citations": []})
         yield _sse("done", {})
         _log(app_state, service_no, question, [])
@@ -127,6 +153,24 @@ async def _generate(
     yield _sse("done", {})
 
     _log(app_state, service_no, question, [c["id"] for c in chunks])
+
+
+def _corpus_summary(app_state: AppState) -> str:
+    """What the library actually holds, so the front desk answers from data."""
+    from .chunks import COLLECTION_LABELS
+
+    rows = app_state.conn.execute(
+        "SELECT collection, COUNT(*) AS n FROM chunks GROUP BY collection ORDER BY n DESC"
+    ).fetchall()
+    counts = app_state.conn.execute(
+        "SELECT (SELECT COUNT(*) FROM documents WHERE status='indexed') AS d, "
+        "       (SELECT COUNT(*) FROM chunks) AS c"
+    ).fetchone()
+
+    collections = [
+        (COLLECTION_LABELS.get(row["collection"], row["collection"]), row["n"]) for row in rows
+    ]
+    return index_summary(collections, counts["d"], counts["c"])
 
 
 def _trim_history(history: list[dict[str, str]]) -> list[dict[str, str]]:
