@@ -20,13 +20,30 @@ SERVICE_USER="${PDAS_USER:-pdas}"
 echo "Installing to $PREFIX"
 
 # ── 0. Verify the transfer ───────────────────────────────────────────────
-if [[ -f "$HERE/SHA256SUMS" ]]; then
-  echo "Verifying checksums…"
-  ( cd "$HERE" && sha256sum -c --quiet SHA256SUMS ) || {
-    echo "CHECKSUM MISMATCH — the transfer is corrupt. Do not proceed." >&2
+# The bundle ships two manifests: RUNTIME_SHA256SUMS (wheels + models) and
+# APP_SHA256SUMS (source + scripts). SHA256SUMS is the pre-split single-archive
+# name, still accepted so an older bundle installs unchanged.
+VERIFIED=0
+for MANIFEST in SHA256SUMS RUNTIME_SHA256SUMS APP_SHA256SUMS; do
+  [[ -f "$HERE/$MANIFEST" ]] || continue
+  echo "Verifying $MANIFEST…"
+  ( cd "$HERE" && sha256sum -c --quiet "$MANIFEST" ) || {
+    echo "CHECKSUM MISMATCH in $MANIFEST — the transfer is corrupt." >&2
+    echo "Re-download the affected file. Do not proceed." >&2
     exit 1
   }
-  echo "  all files intact"
+  VERIFIED=1
+done
+
+if (( VERIFIED )); then
+  echo "  contents intact"
+else
+  # Silence here would mean a corrupt 5 GB transfer installs happily and fails
+  # later in a way that looks like a code bug.
+  echo "WARNING: no checksum manifest found — the transfer is UNVERIFIED." >&2
+  echo "         Expected RUNTIME_SHA256SUMS and APP_SHA256SUMS beside this script." >&2
+  read -rp "Continue without verification? [y/N] " reply
+  [[ "$reply" == "y" ]] || exit 1
 fi
 
 # ── 1. Service account and layout ────────────────────────────────────────
