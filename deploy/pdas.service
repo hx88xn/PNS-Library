@@ -13,6 +13,15 @@ ExecStart=/opt/pdas/venv/bin/pdas serve
 Restart=always
 RestartSec=3
 
+# Point HOME at the writable data directory. ProtectHome=true below makes
+# /home unreadable, and libraries that probe for a user config file at import
+# time then die with PermissionError before the app starts — ezdxf reads
+# ~/.config/ezdxf/ezdxf.ini this way. Redirecting HOME satisfies them without
+# giving the service access to real home directories.
+Environment="HOME=/opt/pdas/var"
+Environment="XDG_CONFIG_HOME=/opt/pdas/var/config"
+Environment="XDG_CACHE_HOME=/opt/pdas/var/cache"
+
 # The corpus is RESTRICTED; keep the service away from everything else.
 NoNewPrivileges=true
 PrivateTmp=true

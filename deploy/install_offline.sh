@@ -49,7 +49,9 @@ fi
 # ── 1. Service account and layout ────────────────────────────────────────
 id -u "$SERVICE_USER" >/dev/null 2>&1 || useradd --system --create-home --shell /usr/sbin/nologin "$SERVICE_USER"
 
-mkdir -p "$PREFIX"/{app,var,wheels}
+# var/config and var/cache stand in for the home directory the service unit
+# redirects HOME to — see the Environment= lines in pdas.service.
+mkdir -p "$PREFIX"/{app,var,wheels} "$PREFIX"/var/{config,cache}
 cp -r "$HERE/app/." "$PREFIX/app/"
 cp -r "$HERE/wheels/." "$PREFIX/wheels/"
 
