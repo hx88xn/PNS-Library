@@ -16,11 +16,12 @@ to PDF before ingestion.
 from __future__ import annotations
 
 from pathlib import Path
-
-import ezdxf
-from ezdxf.document import Drawing
+from typing import TYPE_CHECKING
 
 from .base import Block, ParsedDocument, ParserError
+
+if TYPE_CHECKING:
+    from ezdxf.document import Drawing
 
 # Title block attributes vary by template, so match on common tag names rather
 # than assuming one house standard.
@@ -39,6 +40,12 @@ MAX_ANNOTATIONS = 400
 
 
 def parse(path: Path) -> ParsedDocument:
+    # Imported here, not at module scope. ezdxf reads a user config file at
+    # import time, which raises PermissionError under a hardened systemd
+    # sandbox — and at module scope that takes down the entire API before it
+    # starts. A parser for one format should only be able to fail that format.
+    import ezdxf
+
     try:
         document = ezdxf.readfile(str(path))
     except IOError as exc:
