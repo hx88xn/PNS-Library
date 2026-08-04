@@ -82,15 +82,49 @@ for model in "$EMBED_MODEL" "$LLM_MODEL"; do
 done
 
 # ── 3. Copy the store ────────────────────────────────────────────────────
-# ~/.ollama/models is content-addressed: blobs/ holds the weights and
-# manifests/ maps tags to them. BOTH are required — copying only blobs leaves
-# a server that has the data and no idea what it is called.
-SRC="${OLLAMA_MODELS:-$HOME/.ollama/models}"
+# The store is content-addressed: blobs/ holds the weights and manifests/ maps
+# tags to them. BOTH are required — copying only blobs leaves a server that has
+# the data and no idea what it is called.
+#
+# Where it lives depends on how Ollama was installed. The official Linux
+# installer creates an `ollama` service account and puts the store under
+# /usr/share/ollama, so $HOME/.ollama is empty even when the pull succeeded.
+find_store() {
+  local candidate
+  for candidate in \
+      "${OLLAMA_MODELS:-}" \
+      "/usr/share/ollama/.ollama/models" \
+      "$HOME/.ollama/models" \
+      "/var/lib/ollama/.ollama/models"; do
+    [[ -n "$candidate" && -d "$candidate/manifests" ]] && { echo "$candidate"; return 0; }
+  done
+  return 1
+}
+
+SRC="$(find_store)" || {
+  echo "Cannot locate the Ollama model store." >&2
+  echo "Looked in: \$OLLAMA_MODELS, /usr/share/ollama/.ollama/models," >&2
+  echo "           $HOME/.ollama/models, /var/lib/ollama/.ollama/models" >&2
+  echo "Find it with: sudo find / -name manifests -path '*ollama*' 2>/dev/null" >&2
+  echo "then re-run with OLLAMA_MODELS=/that/path $0" >&2
+  exit 1
+}
+
 echo
 echo "Copying model store from $SRC"
 rm -rf "$OUT/models"
 mkdir -p "$OUT/models"
 cp -r "$SRC/blobs" "$SRC/manifests" "$OUT/models/"
+
+# Sanity-check: a store with manifests but no blobs installs cleanly and then
+# fails at first use, which is a miserable thing to discover on the server.
+BLOB_COUNT="$(find "$OUT/models/blobs" -type f 2>/dev/null | wc -l)"
+BLOB_SIZE="$(du -sh "$OUT/models/blobs" 2>/dev/null | cut -f1)"
+if (( BLOB_COUNT < 2 )); then
+  echo "Only $BLOB_COUNT blobs copied — the store looks incomplete." >&2
+  exit 1
+fi
+echo "  $BLOB_COUNT blobs, $BLOB_SIZE"
 
 # ── 4. Record what went in ───────────────────────────────────────────────
 cat > "$OUT/MODELS.txt" <<EOF
