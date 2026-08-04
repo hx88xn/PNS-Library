@@ -66,6 +66,31 @@ else
   [[ "$reply" == "y" ]] || exit 1
 fi
 
+# ── 0b. Vendored system packages ─────────────────────────────────────────
+# Optional. Present when fetch_debs.sh was run — typically to supply a Python
+# the server's Ubuntu does not ship, since apt cannot reach an archive here.
+if compgen -G "$HERE/debs/*.deb" >/dev/null; then
+  echo "Installing vendored system packages…"
+  # dpkg does not resolve dependencies, so a single pass can fail purely on
+  # ordering. Running it twice settles that without needing an archive; only
+  # the second failure is real.
+  dpkg -i "$HERE"/debs/*.deb >/dev/null 2>&1 || true
+  if ! dpkg -i "$HERE"/debs/*.deb; then
+    echo "Some packages failed to install. Their dependencies are missing" >&2
+    echo "from the bundle — re-run fetch_debs.sh on a machine matching this" >&2
+    echo "Ubuntu release." >&2
+    exit 1
+  fi
+  echo "  $(ls -1 "$HERE"/debs/*.deb | wc -l | tr -d ' ') packages installed"
+fi
+
+# Prefer a vendored 3.12 over the system default: the wheels are built for one
+# specific Python minor version and will not install on another.
+if [[ -z "${PYTHON:-}" ]] && command -v python3.12 >/dev/null; then
+  PYTHON=/usr/bin/python3.12
+  echo "Using $PYTHON (matches the cp312 wheels)"
+fi
+
 # ── 1. Service account and layout ────────────────────────────────────────
 id -u "$SERVICE_USER" >/dev/null 2>&1 || useradd --system --create-home --shell /usr/sbin/nologin "$SERVICE_USER"
 
@@ -77,6 +102,30 @@ cp -r "$HERE/wheels/." "$PREFIX/wheels/"
 
 # ── 2. Python environment, wheels only ───────────────────────────────────
 PYTHON="${PYTHON:-python3}"
+PY_TAG="cp$("$PYTHON" -c 'import sys;print(f"{sys.version_info.major}{sys.version_info.minor}")')"
+
+# Wheel filenames encode the Python minor version. Catching a mismatch here is
+# the difference between one clear sentence and a wall of "No matching
+# distribution found" that reads like a network fault.
+if compgen -G "$PREFIX/wheels/*-cp*-*.whl" >/dev/null; then
+  WHEEL_TAG="$(ls "$PREFIX"/wheels/*-cp*-*.whl | head -1 | grep -o 'cp[0-9]\{2,3\}' | head -1)"
+  if [[ -n "$WHEEL_TAG" && "$WHEEL_TAG" != "$PY_TAG" ]]; then
+    cat >&2 <<EOF
+
+PYTHON VERSION MISMATCH
+
+  This machine: $("$PYTHON" --version)  ($PY_TAG)
+  The wheels:   $WHEEL_TAG
+
+Compiled wheels will not install. Either:
+  - install the matching Python and re-run with
+        sudo PYTHON=/usr/bin/python3.XX ./install_offline.sh
+  - or rebuild the wheels on a machine running this Python version.
+EOF
+    exit 1
+  fi
+fi
+
 echo "Creating virtualenv with $("$PYTHON" --version)"
 
 "$PYTHON" -m venv --without-pip "$PREFIX/venv"

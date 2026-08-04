@@ -112,12 +112,16 @@ echo "  $(du -h "$APP_ARCHIVE" | cut -f1)"
 # ── Runtime archive: large, transferred once ─────────────────────────────
 if (( ! APP_ONLY )); then
   echo
+  # debs/ is optional — present only when fetch_debs.sh was run.
+  RUNTIME_DIRS=(wheels ollama)
+  [[ -d "$STAGE/debs" ]] && RUNTIME_DIRS+=(debs)
+
   echo "Computing runtime checksums (this walks ~5 GB)…"
-  ( cd "$STAGE" && find wheels ollama -type f 2>/dev/null \
+  ( cd "$STAGE" && find "${RUNTIME_DIRS[@]}" -type f 2>/dev/null \
       | sort | xargs sha256sum > RUNTIME_SHA256SUMS )
 
   echo "Creating $(basename "$RUNTIME_ARCHIVE") — uncompressed, models do not compress"
-  tar -cf "$RUNTIME_ARCHIVE" -C "$STAGE" wheels ollama RUNTIME_SHA256SUMS
+  tar -cf "$RUNTIME_ARCHIVE" -C "$STAGE" "${RUNTIME_DIRS[@]}" RUNTIME_SHA256SUMS
 
   echo "  $(du -h "$RUNTIME_ARCHIVE" | cut -f1)"
 
