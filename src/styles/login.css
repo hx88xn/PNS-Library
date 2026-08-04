@@ -1,0 +1,437 @@
+/* ── Sign in ───────────────────────────────────────────────────────────── */
+
+.login {
+  display: grid;
+  grid-template-columns: 1.12fr 0.88fr;
+  height: 100%;
+  background: var(--abyss);
+}
+
+.login-drag {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 46px;
+  -webkit-app-region: drag;
+  z-index: 5;
+}
+
+/* ── Left: the drawing sheet ───────────────────────────────────────────── */
+
+.login-plate {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 58px 52px 40px;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 90% at 12% 0%, rgba(23, 84, 140, 0.55), transparent 62%),
+    radial-gradient(80% 70% at 92% 100%, rgba(53, 198, 224, 0.16), transparent 60%),
+    linear-gradient(168deg, var(--hull) 0%, var(--abyss) 58%, #04121f 100%);
+}
+
+/* Squared paper, the way a plan is laid out before anything is drawn on it */
+.login-plate-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: radial-gradient(100% 80% at 50% 42%, #000 30%, transparent 100%);
+  -webkit-mask-image: radial-gradient(100% 80% at 50% 42%, #000 30%, transparent 100%);
+}
+
+.login-identity {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  color: var(--sonar);
+  animation: rise 700ms var(--ease) both;
+}
+
+.login-org {
+  margin: 0 0 6px;
+  color: var(--sonar);
+  letter-spacing: 0.2em;
+}
+
+.login-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 40px;
+  line-height: 0.92;
+  letter-spacing: 0.005em;
+  text-transform: uppercase;
+  color: var(--white);
+}
+
+.login-title span {
+  display: block;
+  font-weight: 300;
+  color: rgba(232, 240, 247, 0.72);
+}
+
+.login-figure {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 0;
+  padding: 22px 0 10px;
+}
+
+.login-figure-caption {
+  margin: 4px 0 0;
+  color: rgba(232, 240, 247, 0.38);
+  animation: fade 900ms var(--ease) 1.5s both;
+}
+
+/* ── The body plan ─────────────────────────────────────────────────────── */
+
+.hull-lines {
+  width: 100%;
+  max-width: 560px;
+  max-height: 100%;
+}
+
+.hull-lines line,
+.hull-lines path {
+  vector-effect: non-scaling-stroke;
+}
+
+.hl-grid line {
+  stroke: rgba(255, 255, 255, 0.13);
+  stroke-width: 1;
+  stroke-dasharray: 2 5;
+}
+
+.hl-dwl {
+  stroke: var(--sonar);
+  stroke-width: 1;
+  opacity: 0.5;
+  stroke-dasharray: 14 6;
+}
+
+.hl-centreline {
+  stroke: rgba(255, 255, 255, 0.42);
+  stroke-width: 1;
+  stroke-dasharray: 9 4 2 4;
+}
+
+.hl-section {
+  stroke: rgba(198, 226, 245, 0.82);
+  stroke-width: 1.35;
+  stroke-linecap: round;
+}
+
+.hl-deck {
+  stroke: rgba(255, 255, 255, 0.55);
+  stroke-width: 1.35;
+}
+
+.hl-ticks line {
+  stroke: rgba(255, 255, 255, 0.3);
+  stroke-width: 1;
+}
+
+/* Draw the sections on, station by station, the way they are lofted */
+.hull-lines--hero .hl-section {
+  stroke-dasharray: 420;
+  stroke-dashoffset: 420;
+  animation: loft 1100ms var(--ease) both;
+}
+
+.hull-lines--hero .hl-grid,
+.hull-lines--hero .hl-ticks,
+.hull-lines--hero .hl-centreline {
+  animation: fade 900ms ease both;
+}
+
+.hull-lines--hero .hl-dwl {
+  animation: fade 900ms ease 1.3s both;
+}
+
+.hull-lines--hero .hl-deck {
+  stroke-dasharray: 420;
+  stroke-dashoffset: 420;
+  animation: loft 900ms var(--ease) 1.55s both;
+}
+
+@keyframes loft {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hull-lines--hero .hl-section,
+  .hull-lines--hero .hl-deck {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ── Right: the gate ───────────────────────────────────────────────────── */
+
+.login-gate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background: var(--white);
+  box-shadow: -24px 0 60px rgba(4, 18, 31, 0.45);
+  z-index: 2;
+}
+
+.login-form-wrap {
+  width: 100%;
+  max-width: 356px;
+  animation: rise 700ms var(--ease) 160ms both;
+}
+
+.login-gate-eyebrow {
+  margin: 0;
+  color: var(--steel);
+}
+
+.login-gate-title {
+  margin: 10px 0 6px;
+  font-family: var(--font-display);
+  font-size: 38px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.login-gate-sub {
+  margin: 0 0 28px;
+  color: var(--ink-2);
+  font-size: 13.5px;
+}
+
+/* Fields */
+
+.field {
+  display: block;
+  margin-bottom: 18px;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--ink-2);
+}
+
+.field input {
+  width: 100%;
+  padding: 11px 13px;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--sheet);
+  border: 1px solid var(--mist-2);
+  border-radius: var(--r-md);
+  transition: border-color 160ms var(--ease), box-shadow 160ms var(--ease),
+    background-color 160ms var(--ease);
+}
+
+.field input::placeholder {
+  color: #9db2c6;
+}
+
+.field input:hover {
+  border-color: #bed0e1;
+}
+
+.field input:focus {
+  outline: none;
+  background: var(--white);
+  border-color: var(--steel);
+  box-shadow: 0 0 0 3px rgba(23, 84, 140, 0.13);
+}
+
+.field-affix {
+  position: relative;
+}
+
+.field-affix input {
+  padding-right: 62px;
+}
+
+.field-affix-btn {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  padding: 6px 8px;
+  color: var(--steel);
+  border-radius: var(--r-sm);
+}
+
+.field-affix-btn:hover {
+  background: var(--mist);
+}
+
+.login-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 4px 0 2px;
+}
+
+.server-line {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-3);
+}
+
+.field--tight {
+  margin: 12px 0 0;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.checkbox input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--steel);
+  cursor: pointer;
+}
+
+.link-btn {
+  font-size: 12.5px;
+  color: var(--steel);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: rgba(23, 84, 140, 0.3);
+}
+
+.link-btn:hover {
+  text-decoration-color: var(--steel);
+}
+
+.form-error {
+  margin: 0;
+  max-height: 0;
+  overflow: hidden;
+  font-size: 12.5px;
+  color: #b4322f;
+  opacity: 0;
+  transition: max-height 200ms var(--ease), opacity 200ms var(--ease),
+    margin 200ms var(--ease);
+}
+
+.form-error.is-shown {
+  max-height: 44px;
+  margin: 12px 0 0;
+  opacity: 1;
+}
+
+.btn-primary {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 20px;
+  padding: 12px 18px;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--white);
+  background: linear-gradient(180deg, var(--steel-2), var(--steel));
+  border-radius: var(--r-md);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.22) inset,
+    0 6px 18px rgba(23, 84, 140, 0.28);
+  transition: transform 140ms var(--ease), box-shadow 160ms var(--ease),
+    filter 160ms var(--ease);
+}
+
+.btn-primary:hover:not(:disabled) {
+  filter: brightness(1.06);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.22) inset,
+    0 8px 22px rgba(23, 84, 140, 0.36);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn-primary:disabled {
+  cursor: progress;
+  filter: saturate(0.75);
+}
+
+.btn-spinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: var(--white);
+  border-radius: 50%;
+  animation: spin 620ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.login-note {
+  margin: 26px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--mist);
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--ink-3);
+}
+
+/* ── Narrow windows ────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .login {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+  .login-plate {
+    padding: 52px 34px 0;
+    min-height: 340px;
+  }
+  .login-title {
+    font-size: 30px;
+  }
+  .login-gate {
+    box-shadow: none;
+    padding: 34px;
+  }
+}

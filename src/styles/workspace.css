@@ -1,0 +1,511 @@
+/* ── Shell ─────────────────────────────────────────────────────────────── */
+
+.workspace {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--sheet);
+}
+
+/* ── Title bar ─────────────────────────────────────────────────────────── */
+
+.titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 0 0 var(--titlebar-h);
+  padding: 0 10px 0 12px;
+  background: var(--abyss);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  -webkit-app-region: drag;
+  z-index: 10;
+}
+
+.titlebar.is-mac {
+  padding-left: 84px; /* clear of the traffic lights */
+}
+
+.titlebar-left,
+.titlebar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar-left {
+  min-width: 0;
+}
+
+.titlebar-divider {
+  width: 1px;
+  height: 16px;
+  margin: 0 2px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.titlebar-mark {
+  flex: none;
+  color: var(--sonar);
+}
+
+.titlebar-name {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--white);
+}
+
+.titlebar-sub {
+  color: rgba(232, 240, 247, 0.42);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.titlebar-center {
+  -webkit-app-region: drag;
+}
+
+.classification-chip {
+  padding: 3px 9px;
+  color: var(--sonar);
+  background: var(--sonar-dim);
+  border: 1px solid rgba(53, 198, 224, 0.28);
+  border-radius: 99px;
+}
+
+.titlebar-user {
+  color: rgba(232, 240, 247, 0.6);
+  padding-right: 2px;
+}
+
+/* Which model is answering, and whether the server is there at all */
+.conn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px 3px 7px;
+  color: rgba(232, 240, 247, 0.66);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 99px;
+}
+
+.conn-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sonar);
+}
+
+.conn.is-warn {
+  color: #f0c07a;
+}
+.conn.is-warn .conn-dot {
+  background: var(--amber);
+}
+
+.conn.is-down {
+  color: #f1a09a;
+}
+.conn.is-down .conn-dot {
+  background: #d0574e;
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 26px;
+  color: rgba(232, 240, 247, 0.62);
+  border-radius: var(--r-sm);
+  transition: background-color 140ms var(--ease), color 140ms var(--ease);
+}
+
+.icon-btn:hover {
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.icon-btn--danger:hover {
+  background: #c0392b;
+  color: var(--white);
+}
+
+.window-controls {
+  display: flex;
+  gap: 2px;
+  margin-left: 6px;
+  padding-left: 6px;
+  border-left: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+/* ── Body ──────────────────────────────────────────────────────────────── */
+
+.workspace-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── Sidebar: rail + the two tabs ──────────────────────────────────────── */
+
+.sidebar {
+  display: flex;
+  flex: none;
+  background: var(--hull);
+  border-right: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: var(--rail-w);
+  padding: 10px 0;
+  background: var(--abyss-2);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.rail-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  color: rgba(232, 240, 247, 0.5);
+  border-radius: var(--r-md);
+  transition: color 140ms var(--ease), background-color 140ms var(--ease);
+}
+
+.rail-btn:hover {
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.rail-btn.is-active {
+  color: var(--white);
+  background: rgba(53, 198, 224, 0.14);
+}
+
+/* Active marker sits on the rail edge, like a station mark */
+.rail-btn.is-active::before {
+  content: '';
+  position: absolute;
+  left: -11px;
+  top: 9px;
+  bottom: 9px;
+  width: 2px;
+  background: var(--sonar);
+  border-radius: 0 2px 2px 0;
+}
+
+.rail-foot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.15;
+}
+
+.rail-index {
+  font-size: 13px;
+  color: rgba(232, 240, 247, 0.72);
+  letter-spacing: 0.04em;
+}
+
+.rail-index-label {
+  font-size: 9px;
+  color: rgba(232, 240, 247, 0.32);
+}
+
+/* Panel holding the two tabs */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  width: var(--panel-w);
+  min-height: 0;
+  color: rgba(232, 240, 247, 0.86);
+}
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.tab.is-open {
+  flex: 1;
+}
+
+.tab-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  margin: 0;
+  padding: 0 8px 0 4px;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.tab-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  padding: 11px 6px;
+  color: rgba(232, 240, 247, 0.58);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  border-radius: var(--r-sm);
+  transition: color 140ms var(--ease);
+}
+
+.tab-toggle:hover {
+  color: var(--white);
+}
+
+.tab.is-open .tab-toggle {
+  color: var(--white);
+}
+
+.tab-chevron {
+  flex: none;
+  transition: transform 200ms var(--ease);
+  opacity: 0.7;
+}
+
+.tab.is-open .tab-chevron {
+  transform: rotate(90deg);
+}
+
+.tab-action {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: rgba(232, 240, 247, 0.5);
+  border-radius: var(--r-sm);
+  transition: color 140ms var(--ease), background-color 140ms var(--ease);
+}
+
+.tab-action:hover {
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.tab-count {
+  color: rgba(232, 240, 247, 0.34);
+  padding-right: 4px;
+}
+
+.tab-body {
+  min-height: 0;
+  overflow: hidden auto;
+  padding: 0 8px 12px;
+}
+
+.tab:not(.is-open) .tab-body {
+  display: none;
+}
+
+/* Threads */
+
+.thread-list,
+.collection-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.thread {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  text-align: left;
+  border-radius: var(--r-md);
+  border-left: 2px solid transparent;
+  transition: background-color 140ms var(--ease), border-color 140ms var(--ease);
+}
+
+.thread:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.thread.is-active {
+  background: rgba(255, 255, 255, 0.09);
+  border-left-color: var(--sonar);
+}
+
+.thread-title {
+  display: block;
+  font-size: 13px;
+  color: rgba(232, 240, 247, 0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.thread-meta {
+  display: block;
+  margin-top: 1px;
+  font-size: 9.5px;
+  color: rgba(232, 240, 247, 0.36);
+}
+
+/* Collections */
+
+.collection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 13px;
+  text-align: left;
+  color: rgba(232, 240, 247, 0.78);
+  border-radius: var(--r-md);
+  border-left: 2px solid transparent;
+  transition: background-color 140ms var(--ease), color 140ms var(--ease),
+    border-color 140ms var(--ease);
+}
+
+.collection:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--white);
+}
+
+.collection.is-active {
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--white);
+  border-left-color: var(--sonar);
+}
+
+.collection-count {
+  flex: none;
+  color: rgba(232, 240, 247, 0.4);
+}
+
+.collection.is-active .collection-count {
+  color: var(--sonar);
+}
+
+.panel-foot {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  margin-top: auto;
+  padding: 10px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  color: rgba(232, 240, 247, 0.4);
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--sonar);
+  box-shadow: 0 0 0 3px rgba(53, 198, 224, 0.16);
+}
+
+.status-dot.is-degraded {
+  background: var(--amber);
+  box-shadow: 0 0 0 3px rgba(212, 144, 58, 0.18);
+}
+
+/* Something needs an operator's attention — a missing model, an empty index.
+   Stated in the words the health endpoint used, with the command to fix it. */
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  padding: 9px 30px;
+  background: #fdf4e5;
+  border-bottom: 1px solid #f0dcb8;
+  color: #7a5518;
+}
+
+.banner-label {
+  flex: none;
+  padding: 2px 8px;
+  color: #8a5f18;
+  background: rgba(212, 144, 58, 0.18);
+  border-radius: 99px;
+}
+
+.banner-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+}
+
+.banner-action {
+  flex: none;
+  color: #8a5f18;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ── Stage ─────────────────────────────────────────────────────────────── */
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  background: var(--sheet);
+}
+
+.stage-head {
+  flex: none;
+  padding: 18px 30px 14px;
+  background: var(--white);
+  border-bottom: 1px solid var(--mist);
+}
+
+.stage-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.stage-sub {
+  margin: 5px 0 0;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
+.btn-ghost {
+  padding: 9px 16px;
+  font-size: 13px;
+  color: var(--steel);
+  background: var(--white);
+  border: 1px solid var(--mist-2);
+  border-radius: var(--r-md);
+  transition: border-color 140ms var(--ease), background-color 140ms var(--ease);
+}
+
+.btn-ghost:hover {
+  border-color: var(--steel);
+  background: var(--mist);
+}

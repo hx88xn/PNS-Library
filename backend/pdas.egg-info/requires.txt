@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+httpx
+faiss-cpu
+numpy
+rank-bm25
+pymupdf
+python-docx
+openpyxl
+ezdxf
+argon2-cffi
+pyjwt
+typer

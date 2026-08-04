@@ -1,0 +1,47 @@
+/* ── PDAS design tokens ───────────────────────────────────────────────────
+   Palette taken from a warship's own materials: night sea, painted hull
+   steel, the cyan of a sonar return, and the white of a lines-plan sheet.   */
+
+:root {
+  /* Blues */
+  --abyss: #071a2e;
+  --abyss-2: #0a2138;
+  --hull: #0d2b49;
+  --hull-2: #123a61;
+  --steel: #17548c;
+  --steel-2: #2a6fae;
+
+  /* Signal — used sparingly, it is the only saturated colour in the app */
+  --sonar: #35c6e0;
+  --sonar-dim: rgba(53, 198, 224, 0.14);
+
+  /* Papers */
+  --white: #ffffff;
+  --sheet: #f7fafd;
+  --mist: #e8f0f7;
+  --mist-2: #d5e3f0;
+
+  /* Ink */
+  --ink: #0b2138;
+  --ink-2: #37536f;
+  --ink-3: #6b839b;
+
+  /* Status */
+  --amber: #d4903a;
+
+  /* Type */
+  --font-display: 'Barlow Condensed', 'Haettenschweiler', 'Arial Narrow', sans-serif;
+  --font-body: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-data: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* Rhythm */
+  --r-sm: 3px;
+  --r-md: 6px;
+  --r-lg: 10px;
+
+  --titlebar-h: 38px;
+  --rail-w: 60px;
+  --panel-w: 268px;
+
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}

@@ -1,0 +1,20 @@
+Metadata-Version: 2.4
+Name: pdas
+Version: 1.0.0
+Summary: Platform Design Assistance System — Ship Design Office
+Requires-Python: >=3.10
+Requires-Dist: fastapi
+Requires-Dist: uvicorn[standard]
+Requires-Dist: pydantic
+Requires-Dist: pydantic-settings
+Requires-Dist: httpx
+Requires-Dist: faiss-cpu
+Requires-Dist: numpy
+Requires-Dist: rank-bm25
+Requires-Dist: pymupdf
+Requires-Dist: python-docx
+Requires-Dist: openpyxl
+Requires-Dist: ezdxf
+Requires-Dist: argon2-cffi
+Requires-Dist: pyjwt
+Requires-Dist: typer

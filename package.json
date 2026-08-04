@@ -1,0 +1,63 @@
+{
+  "name": "pdas",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Platform Design Assistance System — Ship Design Office, Pakistan Navy",
+  "author": "Ship Design Office",
+  "main": "electron/main.cjs",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k -n VITE,ELECTRON -c cyan,blue \"vite\" \"wait-on tcp:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .\"",
+    "build": "vite build",
+    "preview": "vite build && electron .",
+    "dist": "vite build && electron-builder"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@fontsource/barlow-condensed": "^5.1.0",
+    "@fontsource/ibm-plex-mono": "^5.1.0",
+    "@fontsource/ibm-plex-sans": "^5.1.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.0",
+    "cross-env": "^7.0.3",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "vite": "^6.0.3",
+    "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "pk.navy.sdo.pdas",
+    "productName": "PDAS",
+    "files": [
+      "dist/**",
+      "electron/**",
+      "assets/png/icon_256.png"
+    ],
+    "directories": {
+      "output": "release",
+      "buildResources": "assets"
+    },
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "assets/icon.icns"
+    },
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "PDAS"
+    },
+    "linux": {
+      "icon": "assets/png",
+      "category": "Office"
+    }
+  }
+}

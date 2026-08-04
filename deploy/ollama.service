@@ -1,0 +1,28 @@
+[Unit]
+Description=Ollama model runtime
+After=network-online.target
+
+[Service]
+Type=simple
+User=pdas
+Group=pdas
+ExecStart=/usr/local/bin/ollama serve
+Restart=always
+RestartSec=3
+
+# Bound to loopback: only the PDAS backend talks to it. Nothing on the LAN
+# should reach the raw model API, which has no authentication of its own.
+Environment="OLLAMA_HOST=127.0.0.1:11434"
+Environment="OLLAMA_MODELS=/opt/pdas/models"
+
+# Keep the model resident. On an 8GB card the load takes several seconds, and
+# unloading between questions makes the assistant feel broken.
+Environment="OLLAMA_KEEP_ALIVE=24h"
+
+# One model at a time. Two would not fit alongside the embedder in 8GB, and
+# the failure mode is an out-of-memory error mid-answer.
+Environment="OLLAMA_MAX_LOADED_MODELS=2"
+Environment="OLLAMA_NUM_PARALLEL=1"
+
+[Install]
+WantedBy=multi-user.target
