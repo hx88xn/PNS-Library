@@ -23,3 +23,6 @@ backend/sample-docs/
 offline/
 *.tar.gz
 *.tar.zst
+
+# Local dev overrides
+.env

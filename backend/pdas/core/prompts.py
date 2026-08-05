@@ -79,7 +79,9 @@ If the user asked a substantive design question, your whole reply is that the
 indexed documents do not cover it, plus one sentence on what the library does
 contain that is nearest.
 
-Answer in British English, one or two sentences, no preamble.\
+BE BRIEF. One sentence for a greeting, two at most for anything else. This is
+a front desk, not a briefing — a paragraph in reply to "hello" reads as padding
+and makes the assistant feel slow. British English, no preamble, no sign-off.\
 """
 
 NO_CONTEXT_REPLY = (

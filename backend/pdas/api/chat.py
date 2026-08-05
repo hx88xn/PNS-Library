@@ -79,12 +79,21 @@ async def _generate(
         yield _sse("error", {"detail": str(exc)})
         return
 
-    # Nothing retrieved — greetings, "what can you do", or a question the
-    # corpus simply does not touch. Answer as the front desk, on a prompt that
-    # has no passages and is forbidden from stating any technical fact. The
-    # grounding guarantee is unchanged: nothing substantive is ever produced
-    # without a citation.
-    if not hits:
+    # Dense search always returns its k nearest neighbours, however unrelated
+    # the query — so "hello" comes back with eight passages and the grounded
+    # prompt dutifully recites plating thicknesses at someone saying hello.
+    #
+    # Treat a result set where NO chunk shares a single content word with the
+    # query as a non-question. Sparse retrieval is the discriminator: a real
+    # query about this corpus nearly always shares a term with it, while a
+    # greeting or an off-subject question shares none.
+    lexical_overlap = any(hit.matched_terms for hit in hits)
+
+    # Greetings, "what can you do", or a question the corpus does not touch.
+    # Answer as the front desk, on a prompt that has no passages and is
+    # forbidden from stating any technical fact. The grounding guarantee is
+    # unchanged: nothing substantive is produced without a citation.
+    if not hits or not lexical_overlap:
         messages = [
             {"role": "system", "content": NO_CONTEXT_PROMPT},
             {"role": "system", "content": _corpus_summary(app_state)},
@@ -94,7 +103,9 @@ async def _generate(
 
         produced = 0
         try:
-            async for token in app_state.ollama.chat_stream(messages):
+            # Hard cap. Nothing said here needs length, and a low ceiling keeps
+            # a greeting feeling instant instead of streaming a paragraph.
+            async for token in app_state.ollama.chat_stream(messages, max_tokens=256):
                 produced += len(token)
                 yield _sse("token", {"text": token})
         except OllamaError:
