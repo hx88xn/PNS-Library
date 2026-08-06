@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { IconDoc, IconChevron, IconSearch } from '../components/Icons.jsx'
-import { openDocument } from '../lib/pdf.js'
+import { openDocument, pdfjs } from '../lib/pdf.js'
 import * as api from '../lib/api.js'
 
 /**
@@ -25,6 +25,16 @@ export default function Documents({ target, onConsumeTarget }) {
   const [error, setError] = useState('')
   const [filter, setFilter] = useState('')
 
+  // Find-in-document. `query` is what the box holds; `find` is the result set
+  // for the query that was actually run, so the highlight and the hit list
+  // never describe different searches.
+  const [query, setQuery] = useState('')
+  const [find, setFind] = useState(null)
+  const [finding, setFinding] = useState(false)
+  // Matches actually painted on the page now on screen. Null when no search is
+  // running, so "none found" and "not searched" stay distinguishable.
+  const [onPage, setOnPage] = useState(null)
+
   const canvasRef = useRef(null)
   const scrollRef = useRef(null)
   // The in-flight render task. pdf.js rejects if you start a second render on
@@ -44,6 +54,8 @@ export default function Documents({ target, onConsumeTarget }) {
     setError('')
     setText(null)
     setPdf(null)
+    setQuery('')
+    setFind(null)
     setLoading(true)
 
     // Close the previous document explicitly. Each one holds a worker and the
@@ -108,6 +120,44 @@ export default function Documents({ target, onConsumeTarget }) {
     // twice navigates twice.
   }, [target?.at, documents]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Find in document ──────────────────────────────────────────────────
+
+  useEffect(() => {
+    const needle = query.trim()
+    if (!selected || needle.length < 2) {
+      setFind(null)
+      setFinding(false)
+      return
+    }
+
+    const controller = new AbortController()
+    setFinding(true)
+    // Debounced: typing "corrosion" would otherwise run nine searches, and the
+    // last one is the only one anybody wanted.
+    const timer = setTimeout(() => {
+      api
+        .findInDocument(selected.id, needle, controller.signal)
+        .then((r) => {
+          setFind(r)
+          setFinding(false)
+          // Land on the first hit straight away. Searching and then having to
+          // click a result to see anything is a step with no purpose.
+          if (r.pages.length > 0) go(r.pages[0].page)
+        })
+        .catch((err) => {
+          if (err.name !== 'AbortError') {
+            setFinding(false)
+            setError(err.message)
+          }
+        })
+    }, 260)
+
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [query, selected]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Rendering the page ────────────────────────────────────────────────
 
   useEffect(() => {
@@ -145,7 +195,20 @@ export default function Documents({ target, onConsumeTarget }) {
         })
         renderRef.current = task
         await task.promise
-        if (!cancelled) scrollRef.current?.scrollTo({ top: 0 })
+        if (cancelled) return
+
+        // The highlight is drawn from the PDF's OWN text, not from the index
+        // that produced the hit list. Keeping the two independent is the point:
+        // a page listed as a hit with nothing marked on it means the parser and
+        // the page disagree, and that is worth being able to see.
+        const needle = query.trim()
+        setOnPage(
+          needle.length >= 2
+            ? await paintMatches(rendered, canvas, viewport, ratio, needle)
+            : null
+        )
+
+        scrollRef.current?.scrollTo({ top: 0 })
       } catch (err) {
         // A cancelled render is the expected outcome of paging quickly.
         if (!cancelled && err?.name !== 'RenderingCancelledException') {
@@ -157,13 +220,32 @@ export default function Documents({ target, onConsumeTarget }) {
     return () => {
       cancelled = true
     }
-  }, [pdf, page, zoom])
+  }, [pdf, page, zoom, query])
 
   function go(next) {
     if (!pdf) return
     const clamped = clamp(next, 1, pdf.numPages)
     setPage(clamped)
     setPageDraft(String(clamped))
+  }
+
+  const hits = find?.pages ?? []
+  const hitIndex = hits.findIndex((h) => h.page === page)
+
+  function stepHit(delta) {
+    if (hits.length === 0) return
+    // From a page that is not itself a hit, step to the nearest one in that
+    // direction rather than doing nothing.
+    let next
+    if (hitIndex >= 0) {
+      next = (hitIndex + delta + hits.length) % hits.length
+    } else {
+      next = delta > 0
+        ? hits.findIndex((h) => h.page > page)
+        : findLastIndex(hits, (h) => h.page < page)
+      if (next < 0) next = delta > 0 ? 0 : hits.length - 1
+    }
+    go(hits[next].page)
   }
 
   const shown = useMemo(() => {
@@ -233,6 +315,56 @@ export default function Documents({ target, onConsumeTarget }) {
               </div>
 
               {pdf && (
+                <div className="docs-find">
+                  <IconSearch width={13} height={13} />
+                  <input
+                    type="text"
+                    value={query}
+                    placeholder="Find in document"
+                    spellCheck="false"
+                    aria-label="Find in document"
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        stepHit(e.shiftKey ? -1 : 1)
+                      }
+                      if (e.key === 'Escape') setQuery('')
+                    }}
+                  />
+
+                  {query.trim().length >= 2 && (
+                    <span className="docs-find-count eyebrow">
+                      {finding
+                        ? 'Searching'
+                        : hits.length === 0
+                          ? 'No pages'
+                          : `${hitIndex >= 0 ? hitIndex + 1 : '–'} / ${find.total_pages} pages`}
+                    </span>
+                  )}
+
+                  {hits.length > 0 && (
+                    <>
+                      <button
+                        className="docs-step docs-step--sm"
+                        onClick={() => stepHit(-1)}
+                        aria-label="Previous page with a match"
+                      >
+                        <IconChevron width={11} height={11} className="rot-180" />
+                      </button>
+                      <button
+                        className="docs-step docs-step--sm"
+                        onClick={() => stepHit(1)}
+                        aria-label="Next page with a match"
+                      >
+                        <IconChevron width={11} height={11} />
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {pdf && (
                 <div className="docs-nav">
                   <button
                     className="docs-step"
@@ -294,6 +426,34 @@ export default function Documents({ target, onConsumeTarget }) {
 
             {error && <p className="docs-error">{error}</p>}
 
+            {/* A passage is chunked from where it starts, so a hit page can be
+                the page the passage BEGINS on while the phrase itself falls
+                just over the break. Saying so beats leaving an unexplained
+                page with nothing marked on it. */}
+            {onPage === 0 && hitIndex >= 0 && (
+              <p className="docs-note">
+                Nothing marked on this page — the passage starts here and the
+                phrase falls after the break. Try page {page + 1}.
+              </p>
+            )}
+
+            {hits.length > 0 && (
+              <ul className="docs-hits">
+                {hits.map((h) => (
+                  <li key={h.page}>
+                    <button
+                      className={`docs-hit ${h.page === page ? 'is-current' : ''}`}
+                      onClick={() => go(h.page)}
+                    >
+                      <span className="docs-hit-page eyebrow">p. {h.page}</span>
+                      {h.section && <span className="docs-hit-sec">{h.section}</span>}
+                      <span className="docs-hit-text">{h.snippet}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
             <div className="docs-stage" ref={scrollRef}>
               {loading ? (
                 <div className="docs-loading">
@@ -317,6 +477,84 @@ export default function Documents({ target, onConsumeTarget }) {
   )
 }
 
+function findLastIndex(list, predicate) {
+  for (let i = list.length - 1; i >= 0; i -= 1) if (predicate(list[i])) return i
+  return -1
+}
+
 function clamp(value, low, high) {
   return Math.min(high, Math.max(low, value))
+}
+
+/**
+ * Mark every occurrence of `needle` on a rendered page. Returns the count.
+ *
+ * pdf.js emits text as runs, and a run boundary falls wherever the typesetting
+ * changed — mid-phrase, mid-word, at every line break. Searching each run on
+ * its own therefore misses most real phrases: "corrosion addition" appears on
+ * page 116 of the rulebook and matches no single run. So the runs are joined,
+ * the search happens on the joined text, and each match is mapped back to the
+ * runs it covers — one rectangle per run it crosses.
+ *
+ * Whitespace in the query matches any run of whitespace, so a phrase broken
+ * across a line still matches.
+ *
+ * Placement within a run is by character proportion, since pdf.js gives a run
+ * a width but not per-character positions. That is approximate by construction
+ * and can sit a glyph wide in proportional type. It is a highlight, not a
+ * selection: its job is to draw the eye to the right line.
+ */
+async function paintMatches(page, canvas, viewport, ratio, needle) {
+  const content = await page.getTextContent()
+  const items = content.items.filter((i) => i.str)
+
+  // Joined page text, plus a character-to-run map to find the way back.
+  let joined = ''
+  const owner = []
+  for (const item of items) {
+    for (let i = 0; i < item.str.length; i += 1) owner.push({ item, i })
+    joined += item.str
+    if (item.hasEOL) {
+      joined += ' '
+      owner.push(null) // the separator belongs to no run
+    }
+  }
+
+  const pattern = new RegExp(
+    needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+'),
+    'gi'
+  )
+
+  const context = canvas.getContext('2d')
+  context.save()
+  context.scale(ratio, ratio)
+  context.fillStyle = 'rgba(53, 198, 224, 0.34)'
+
+  let count = 0
+  for (const match of joined.matchAll(pattern)) {
+    count += 1
+
+    // Group the matched characters by the run they came from: a phrase
+    // crossing a run boundary gets a rectangle on each side.
+    const segments = new Map()
+    for (let at = match.index; at < match.index + match[0].length; at += 1) {
+      const slot = owner[at]
+      if (!slot) continue
+      const span = segments.get(slot.item)
+      if (span) span[1] = slot.i
+      else segments.set(slot.item, [slot.i, slot.i])
+    }
+
+    for (const [item, [from, to]] of segments) {
+      const [a, b, c, d, e, f] = pdfjs.Util.transform(viewport.transform, item.transform)
+      const height = Math.hypot(c, d) || Math.hypot(a, b)
+      const width = item.width * viewport.scale
+      const per = width / item.str.length
+
+      context.fillRect(e + from * per, f - height, (to - from + 1) * per, height * 1.16)
+    }
+  }
+
+  context.restore()
+  return count
 }

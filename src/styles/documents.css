@@ -314,3 +314,126 @@
   border: 1px solid var(--mist-2);
   border-radius: var(--r-md);
 }
+
+/* ── Find in document ──────────────────────────────────────────────────── */
+
+.docs-find {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  padding: 4px 9px;
+  background: var(--sheet);
+  border: 1px solid var(--mist-2);
+  border-radius: var(--r-sm);
+  transition: border-color 140ms var(--ease), background-color 140ms var(--ease);
+}
+
+.docs-find:focus-within {
+  background: var(--white);
+  border-color: var(--steel-2);
+}
+
+.docs-find > svg {
+  flex: none;
+  color: var(--ink-3);
+}
+
+.docs-find input {
+  width: 148px;
+  border: 0;
+  background: none;
+  font-size: 12.5px;
+  color: var(--ink);
+}
+
+.docs-find input:focus {
+  outline: none;
+}
+
+.docs-find input::placeholder {
+  color: var(--mist-2);
+}
+
+.docs-find-count {
+  flex: none;
+  padding-left: 8px;
+  color: var(--ink-3);
+  border-left: 1px solid var(--mist);
+  white-space: nowrap;
+}
+
+.docs-step--sm {
+  width: 22px;
+  height: 22px;
+  border-color: transparent;
+}
+
+/* The hits: a shallow strip, so it never pushes the page out of view. It is
+   the page itself people came to read. */
+.docs-hits {
+  flex: none;
+  list-style: none;
+  max-height: 132px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  background: var(--white);
+  border-bottom: 1px solid var(--mist);
+}
+
+.docs-hit {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 18px;
+  text-align: left;
+  border-left: 2px solid transparent;
+  transition: background-color 120ms var(--ease), border-color 120ms var(--ease);
+}
+
+.docs-hit:hover {
+  background: var(--sheet);
+}
+
+.docs-hit.is-current {
+  background: #f4f9fe;
+  border-left-color: var(--sonar);
+}
+
+.docs-hit-page {
+  flex: none;
+  min-width: 52px;
+  color: var(--steel);
+}
+
+.docs-hit-sec {
+  flex: none;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+
+.docs-hit-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.docs-note {
+  flex: none;
+  margin: 0;
+  padding: 8px 18px;
+  font-size: 12.5px;
+  color: #8a6212;
+  background: #fdf8ec;
+  border-bottom: 1px solid #f0e2c2;
+}

@@ -100,6 +100,72 @@ def source_text(
     return {"filename": row["filename"], "text": row["text"] or ""}
 
 
+@router.get("/documents/{document_id}/find")
+def find_in_document(
+    document_id: int,
+    q: str = "",
+    limit: int = 300,
+    app_state: AppState = Depends(state),
+    _user: dict = Depends(current_user),
+) -> dict:
+    """Which pages of one document mention a phrase.
+
+    Answered from the indexed passages rather than by scanning the PDF. The
+    client could extract text from the file it already holds, but that is
+    ~30 ms a page — three quarters of a minute on a 1,588-page rulebook before
+    the first result appears, every time the query changes. The index answers
+    in milliseconds.
+
+    Reports PAGES, not occurrences. Chunks overlap by 80 tokens so a criterion
+    split across a boundary stays findable from both sides, which means a term
+    landing in the overlap is stored twice and counting across chunks overstates
+    the document. Distinct pages have no such problem.
+
+    One caveat, made visible rather than hidden: this searches the parser's
+    reading of the page. The highlight drawn in the viewer comes from the PDF's
+    own text, so a page listed here with nothing highlighted on it is a genuine
+    signal that the two disagree.
+    """
+    needle = q.strip().lower()
+    if len(needle) < 2:
+        return {"query": q, "pages": [], "total_pages": 0}
+
+    rows = app_state.conn.execute(
+        "SELECT page, section, text FROM chunks "
+        "WHERE document_id = ? AND page IS NOT NULL AND lower(text) LIKE ? "
+        "ORDER BY page, ordinal",
+        (document_id, f"%{needle}%"),
+    ).fetchall()
+
+    pages: dict[int, dict] = {}
+    for row in rows:
+        if row["page"] in pages:
+            continue  # first hit on a page carries the snippet
+        pages[row["page"]] = {
+            "page": row["page"],
+            "section": row["section"] or "",
+            "snippet": _snippet(row["text"], needle),
+        }
+
+    ordered = sorted(pages.values(), key=lambda p: p["page"])
+    return {"query": q, "pages": ordered[:limit], "total_pages": len(ordered)}
+
+
+SNIPPET_BEFORE, SNIPPET_AFTER = 60, 90
+
+
+def _snippet(text: str, needle: str) -> str:
+    """A window around the first hit, so the result list is readable."""
+    at = text.lower().find(needle)
+    if at < 0:
+        return text[: SNIPPET_BEFORE + SNIPPET_AFTER].strip()
+
+    start = max(0, at - SNIPPET_BEFORE)
+    end = min(len(text), at + len(needle) + SNIPPET_AFTER)
+    body = " ".join(text[start:end].split())
+    return f"{'…' if start else ''}{body}{'…' if end < len(text) else ''}"
+
+
 @router.delete("/documents/{document_id}")
 async def remove(
     document_id: int,

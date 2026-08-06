@@ -148,6 +148,11 @@ export function documentText(id, signal) {
   return request(`/api/documents/${id}/text`, { signal })
 }
 
+/** Pages of one document that mention a phrase. */
+export function findInDocument(id, q, signal) {
+  return request(`/api/documents/${id}/find?q=${encodeURIComponent(q)}`, { signal })
+}
+
 /** Upload documents. Returns immediately with a job to poll — a large PDF
  *  takes tens of minutes, which no request should hold open. */
 export async function uploadDocuments(files) {
