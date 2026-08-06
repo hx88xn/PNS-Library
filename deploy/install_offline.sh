@@ -126,7 +126,11 @@ if compgen -G "$PREFIX/wheels/*.whl" >/dev/null; then
   for whl in "$PREFIX"/wheels/*.whl; do
     name="$(basename "$whl")"
     [[ "$name" == *abi3* ]] && continue
-    tags="$(grep -oE 'cp[0-9]{2,3}' <<<"$name")"
+    # `|| true` matters: grep exits 1 on no match, and under `set -e` that
+    # aborts the whole install the moment the loop reaches a pure-Python wheel
+    # such as fastapi-…-py3-none-any.whl, which carries no cp tag at all.
+    tags="$(grep -oE 'cp[0-9]{2,3}' <<<"$name" || true)"
+    [[ -n "$tags" ]] || continue
     [[ "$(wc -l <<<"$tags")" -ge 2 ]] || continue
     if [[ "$(sed -n 1p <<<"$tags")" == "$(sed -n 2p <<<"$tags")" ]]; then
       WHEEL_TAG="$(sed -n 1p <<<"$tags")"
