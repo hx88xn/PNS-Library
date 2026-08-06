@@ -224,12 +224,36 @@
 
 /* Panel holding the two tabs */
 
+/* Collapsing animates width to zero while the contents keep their own width
+   and are clipped. Animating the width of a flex column directly would reflow
+   the tabs as they narrowed — text rewrapping mid-slide, which reads as a
+   stutter rather than a movement. */
 .panel {
+  width: var(--panel-w);
+  min-height: 0;
+  overflow: hidden;
+  color: rgba(232, 240, 247, 0.86);
+  transition: width 340ms var(--ease);
+}
+
+.panel.is-closed {
+  width: 0;
+}
+
+.panel-inner {
   display: flex;
   flex-direction: column;
   width: var(--panel-w);
+  height: 100%;
   min-height: 0;
-  color: rgba(232, 240, 247, 0.86);
+  transition: transform 340ms var(--ease), opacity 220ms var(--ease);
+}
+
+/* Drift left slightly ahead of the edge, so it reads as sliding out rather
+   than being guillotined by the clip. */
+.panel.is-closed .panel-inner {
+  transform: translateX(-24px);
+  opacity: 0;
 }
 
 .tab {
@@ -407,9 +431,37 @@
   gap: 7px;
   flex: none;
   margin-top: auto;
-  padding: 10px 14px;
+  padding: 8px 8px 8px 14px;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
   color: rgba(232, 240, 247, 0.4);
+}
+
+.panel-foot-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.panel-collapse {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  color: rgba(232, 240, 247, 0.45);
+  border-radius: var(--r-sm);
+  transition: color 140ms var(--ease), background-color 140ms var(--ease);
+}
+
+.panel-collapse svg {
+  transform: rotate(180deg); /* chevron points the way the panel travels */
+}
+
+.panel-collapse:hover {
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .status-dot {

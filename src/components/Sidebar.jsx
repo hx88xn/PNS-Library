@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { IconChat, IconRetriever, IconChevron, IconPlus, IconIngest } from './Icons.jsx'
 
 /**
@@ -18,9 +19,21 @@ export default function Sidebar({
   setCollection,
   collections,
   health,
-  job
+  job,
+  onCollapse
 }) {
   const indexed = health?.chunk_count ?? 0
+  const panelRef = useRef(null)
+
+  // A width-0 panel is still in the tab order and still reachable by
+  // screen readers. `inert` takes the whole subtree out of both, and has no
+  // React prop, so it is set directly.
+  useEffect(() => {
+    const node = panelRef.current
+    if (!node) return
+    if (open) node.removeAttribute('inert')
+    else node.setAttribute('inert', '')
+  }, [open])
 
   return (
     <aside className={`sidebar ${open ? '' : 'is-collapsed'}`}>
@@ -68,8 +81,11 @@ export default function Sidebar({
         </div>
       </nav>
 
-      {open && (
-        <div className="panel">
+      {/* Always mounted, width-animated. Unmounting on close would make it
+          vanish rather than slide, and would throw away scroll position and
+          the open/closed state of each tab. */}
+      <div className={`panel ${open ? '' : 'is-closed'}`} ref={panelRef} aria-hidden={!open}>
+        <div className="panel-inner">
           {/* ── Tab 1: Chat ─────────────────────────────────────────────── */}
           <section className={`tab ${openTabs.chat ? 'is-open' : ''}`}>
             <h2 className="tab-head">
@@ -221,16 +237,25 @@ export default function Sidebar({
               className={`status-dot ${health?.status === 'ok' ? '' : 'is-degraded'}`}
               aria-hidden="true"
             />
-            <span className="eyebrow">
+            <span className="eyebrow panel-foot-text">
               {health
                 ? health.status === 'ok'
                   ? `${health.document_count} documents indexed`
                   : 'Needs attention'
                 : 'Server unreachable'}
             </span>
+
+            <button
+              className="panel-collapse"
+              onClick={onCollapse}
+              title="Hide panel"
+              aria-label="Hide panel"
+            >
+              <IconChevron width={14} height={14} />
+            </button>
           </footer>
         </div>
-      )}
+      </div>
     </aside>
   )
 }

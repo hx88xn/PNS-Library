@@ -101,6 +101,7 @@ export default function Workspace({ user, onSignOut }) {
           collections={collections}
           health={health}
           job={job}
+          onCollapse={() => setSidebarOpen(false)}
         />
 
         <main className="stage">
