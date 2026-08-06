@@ -130,6 +130,52 @@ def reindex() -> None:
 
 
 @app.command()
+def clear(
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip the confirmation"),
+) -> None:
+    """Empty the index — every document, chunk and vector. Accounts are kept.
+
+    For starting an ingestion test from a known-empty state. Stored copies of
+    the source files go too, so nothing is left half-referenced.
+    """
+    state = build_state()
+    counts = state.conn.execute(
+        "SELECT (SELECT COUNT(*) FROM documents) AS d, (SELECT COUNT(*) FROM chunks) AS c"
+    ).fetchone()
+
+    if counts["d"] == 0 and counts["c"] == 0:
+        typer.echo("Already empty.")
+        return
+
+    typer.echo(f"This deletes {counts['d']} document(s) and {counts['c']} chunk(s).")
+    typer.echo(f"Accounts and settings are kept. Data dir: {state.settings.data_dir}")
+    if not yes:
+        typer.confirm("Continue?", abort=True)
+
+    state.conn.execute("DELETE FROM chunks")
+    state.conn.execute("DELETE FROM documents")
+    state.conn.execute("DELETE FROM meta WHERE key IN ('embed_model','embed_dim','index_size')")
+    state.conn.commit()
+
+    # The FAISS file must go too: leaving it would load vectors with no rows to
+    # resolve them to, and health would report a size mismatch forever.
+    state.settings.index_path.unlink(missing_ok=True)
+
+    removed = 0
+    if state.settings.documents_dir.exists():
+        for stored in state.settings.documents_dir.iterdir():
+            if stored.is_file():
+                stored.unlink()
+                removed += 1
+
+    typer.secho(
+        f"Cleared. Removed {removed} stored file(s) and the vector index.",
+        fg=typer.colors.GREEN,
+    )
+    typer.echo("Restart the service so it reloads an empty index: systemctl restart pdas")
+
+
+@app.command()
 def adduser(
     service_no: str = typer.Argument(..., help="e.g. PN-40218"),
     name: Optional[str] = typer.Option(None, "--name"),
