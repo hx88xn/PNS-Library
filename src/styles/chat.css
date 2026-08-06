@@ -100,6 +100,54 @@
   box-shadow: -3px 0 0 var(--sonar);
 }
 
+/* Waiting on the model. Same box as the real thing so nothing shifts when the
+   questions land — only the fill changes. */
+.opener--waiting {
+  display: block;
+  height: 39px;
+  background: linear-gradient(
+    90deg,
+    var(--white) 0%,
+    var(--sheet) 40%,
+    var(--white) 80%
+  );
+  background-size: 250% 100%;
+  animation: opener-wait 1.5s var(--ease) infinite;
+}
+
+.opener-list li:nth-child(2) .opener--waiting {
+  animation-delay: 120ms;
+}
+.opener-list li:nth-child(3) .opener--waiting {
+  animation-delay: 240ms;
+}
+.opener-list li:nth-child(4) .opener--waiting {
+  animation-delay: 360ms;
+}
+
+@keyframes opener-wait {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -40% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .opener--waiting {
+    animation: none;
+  }
+}
+
+.chat-empty-note {
+  position: relative;
+  max-width: 560px;
+  margin: 32px auto 0;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
 /* Messages */
 
 .msg {

@@ -89,6 +89,16 @@ CREATE TABLE IF NOT EXISTS query_log (
 
 CREATE INDEX IF NOT EXISTS idx_query_log_created ON query_log(created_at);
 
+-- Generated opening questions for the chat screen, cached against a corpus
+-- fingerprint so a set is written once per ingest rather than once per visit.
+-- One row per collection; a stale fingerprint means regenerate.
+CREATE TABLE IF NOT EXISTS suggestions (
+    collection  TEXT PRIMARY KEY,
+    fingerprint TEXT NOT NULL,
+    questions   TEXT NOT NULL,
+    created_at  TEXT NOT NULL
+);
+
 -- Index metadata: embedding model and dimension the FAISS index was built with.
 -- A mismatch here means the index must be rebuilt, and we refuse to serve
 -- against it rather than return silently wrong neighbours.

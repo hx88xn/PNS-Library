@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api import auth, chat, chunks, documents, health, ingest
+from .api import auth, chat, chunks, documents, health, ingest, suggestions
 from .config import get_settings
 from .state import build_state, get_state, set_state
 
@@ -42,3 +42,4 @@ app.include_router(chunks.router, prefix="/api", tags=["chunks"])
 app.include_router(chat.router, prefix="/api", tags=["chat"])
 app.include_router(documents.router, prefix="/api", tags=["documents"])
 app.include_router(ingest.router, prefix="/api", tags=["ingest"])
+app.include_router(suggestions.router, prefix="/api", tags=["chat"])

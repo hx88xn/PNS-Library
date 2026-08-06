@@ -104,6 +104,13 @@ export function collections() {
   return request('/api/collections')
 }
 
+// Openers for the empty chat screen. Generated from what is actually indexed,
+// so the first request after an ingest waits on the model; later ones are
+// served from cache.
+export function suggestions(collection = 'all', signal) {
+  return request(`/api/suggestions?collection=${encodeURIComponent(collection)}`, { signal })
+}
+
 export function documents() {
   return request('/api/documents')
 }

@@ -3,21 +3,30 @@ import { IconSend, IconDoc, IconChevron } from '../components/Icons.jsx'
 import HullLines from '../components/HullLines.jsx'
 import * as api from '../lib/api.js'
 
-const OPENERS = [
-  'What intact stability margin applies to a 3,000 t escort?',
-  'Summarise the two-compartment damage standard.',
-  'What frame spacing applies in the machinery spaces?',
-  'What weight and KG margins do we carry to contract design?'
-]
-
 export default function Chat({ thread, collection, onSend, onPatchLast }) {
   const [draft, setDraft] = useState('')
   const [streaming, setStreaming] = useState(false)
+  const [openers, setOpeners] = useState(null)
   const scrollRef = useRef(null)
   const inputRef = useRef(null)
   const abortRef = useRef(null)
 
   const messages = thread.messages
+  const empty = messages.length === 0
+
+  // Openers come from the corpus, so they are fetched, not written here. Only
+  // when the screen is actually empty: on a cold index this waits on the model,
+  // and there is no reason to spend that on a thread already in progress.
+  useEffect(() => {
+    if (!empty) return
+    const controller = new AbortController()
+    setOpeners(null)
+    api
+      .suggestions(collection, controller.signal)
+      .then((r) => setOpeners(r.suggestions.slice(0, 4)))
+      .catch(() => setOpeners([]))
+    return () => controller.abort()
+  }, [empty, collection])
 
   useEffect(() => {
     const el = scrollRef.current
@@ -76,19 +85,36 @@ export default function Chat({ thread, collection, onSend, onPatchLast }) {
     <div className="chat">
       <div className="chat-scroll" ref={scrollRef}>
         <div className="chat-inner">
-          {messages.length === 0 ? (
+          {empty ? (
             <div className="chat-empty">
               <HullLines variant="ghost" className="chat-empty-figure" />
               <h2 className="chat-empty-title">Ask the library</h2>
-              <ul className="opener-list">
-                {OPENERS.map((o) => (
-                  <li key={o}>
-                    <button className="opener" onClick={() => send(o)}>
-                      {o}
-                    </button>
-                  </li>
-                ))}
-              </ul>
+
+              {openers === null ? (
+                // Placeholders, not a spinner: the openers land in this exact
+                // shape, so nothing below them jumps when they arrive.
+                <ul className="opener-list" aria-hidden="true">
+                  {[0, 1, 2, 3].map((i) => (
+                    <li key={i}>
+                      <span className="opener opener--waiting" />
+                    </li>
+                  ))}
+                </ul>
+              ) : openers.length > 0 ? (
+                <ul className="opener-list">
+                  {openers.map((o) => (
+                    <li key={o}>
+                      <button className="opener" onClick={() => send(o)}>
+                        {o}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="chat-empty-note">
+                  Ingest a document to see suggested questions here.
+                </p>
+              )}
             </div>
           ) : (
             messages.map((m, i) => (

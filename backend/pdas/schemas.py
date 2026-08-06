@@ -116,3 +116,10 @@ class HealthResponse(BaseModel):
     document_count: int
     index_error: str | None = None
     problems: list[str] = Field(default_factory=list)
+
+
+class SuggestionResponse(BaseModel):
+    suggestions: list[str]
+    """Opening questions written from the indexed corpus, each verified to
+    retrieve. Empty when nothing is indexed or none survived verification —
+    the chat screen shows no openers rather than invented ones."""

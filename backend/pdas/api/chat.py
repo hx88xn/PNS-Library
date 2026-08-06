@@ -139,10 +139,17 @@ async def _generate(
     # as a broken interface rather than a fixable configuration problem.
     if meta.get("content_chars", 0) == 0:
         if meta.get("thinking_chars", 0) > 0:
+            # Deliberately does not suggest raising PDAS_MAX_TOKENS. Thinking
+            # and answer draw on one budget (num_predict), and a model that
+            # overruns it does not converge if given more: measured on
+            # qwen3-vl:4b against this corpus, 2560 tokens produced 9,935
+            # characters of deliberation and 6144 produced 21,852 — both with
+            # zero answer. The budget is not the fault; the model is.
             detail = (
-                f"{app_state.settings.llm_model} used its entire token budget "
-                "reasoning and produced no answer. Raise PDAS_MAX_TOKENS, or use "
-                "a model that does not emit reasoning traces."
+                f"{app_state.settings.llm_model} spent its whole token budget "
+                "reasoning and produced no answer. It ignores the request not "
+                "to deliberate, and raising PDAS_MAX_TOKENS will not fix that. "
+                "Set PDAS_LLM_MODEL to a model that honours it."
             )
         else:
             detail = f"{app_state.settings.llm_model} returned an empty response."
