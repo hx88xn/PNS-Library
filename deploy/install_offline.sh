@@ -11,6 +11,11 @@
 
 set -euo pipefail
 
+# `set -e` aborts silently, which on an air-gapped box leaves you with a
+# half-installed system and no idea which step failed. Report the line and the
+# command instead.
+trap 'rc=$?; echo >&2; echo "INSTALL FAILED at line $LINENO (exit $rc):" >&2; echo "  $BASH_COMMAND" >&2; echo >&2; echo "Re-run with: sudo bash -x $0   to see the full trace." >&2; exit $rc' ERR
+
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PREFIX="${PDAS_PREFIX:-/opt/pdas}"
 SERVICE_USER="${PDAS_USER:-pdas}"
