@@ -57,7 +57,19 @@ def ingest(
     async def run() -> ingest_core.IngestResult:
         def progress(name: str, result: ingest_core.IngestResult) -> None:
             done = len(result.ingested) + len(result.failed) + len(result.skipped)
-            typer.echo(f"  [{done}] {name}")
+            # \r from the chunk line leaves the cursor mid-line; clear it first.
+            typer.echo(f"\r\033[K  [{done}] {name}")
+
+        def chunk_progress(done: int, total: int, rate: float, remaining: float) -> None:
+            # Overwrite one line rather than scrolling. A 1,100-page document is
+            # thousands of batches, and a wall of output hides the summary.
+            mins, secs = divmod(int(remaining), 60)
+            eta = f"{mins}m{secs:02d}s" if mins else f"{secs}s"
+            typer.echo(
+                f"\r\033[K      embedding {done}/{total} chunks "
+                f"({rate:.1f}/s, ~{eta} left)",
+                nl=False,
+            )
 
         return await ingest_core.ingest_paths(
             list(paths),
@@ -69,6 +81,7 @@ def ingest(
             collection_override=collection,
             classification=classification,
             on_progress=progress,
+            on_chunk_progress=chunk_progress,
         )
 
     try:

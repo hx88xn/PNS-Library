@@ -12,6 +12,7 @@ import hashlib
 import json
 import re
 import shutil
+import time
 import sqlite3
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -103,6 +104,7 @@ async def ingest_paths(
     collection_override: str | None = None,
     classification: str = "RESTRICTED",
     on_progress=None,
+    on_chunk_progress=None,
 ) -> IngestResult:
     result = IngestResult()
 
@@ -120,6 +122,7 @@ async def ingest_paths(
                 settings=settings,
                 collection_override=collection_override,
                 classification=classification,
+                on_chunk_progress=on_chunk_progress,
             )
         except _AlreadyIngested as exc:
             result.skipped.append((path.name, str(exc)))
@@ -156,6 +159,7 @@ async def _ingest_one(
     settings: Settings,
     collection_override: str | None,
     classification: str,
+    on_chunk_progress=None,
 ) -> int:
     digest = sha256_of(path)
     existing = conn.execute(
@@ -209,10 +213,21 @@ async def _ingest_one(
     # Re-ingesting replaces the previous chunks for this document.
     conn.execute("DELETE FROM chunks WHERE document_id = ?", (document_id,))
 
+    # Embedding dominates the runtime — measured at ~7 chunks/sec on a GPU and
+    # 1–2 on CPU, so a 1,100-page document is tens of minutes. Report progress
+    # per batch; without it a large file looks indistinguishable from a hang.
     texts = [chunk.text for chunk in chunks]
     vectors: list[list[float]] = []
+    started = time.monotonic()
+
     for start in range(0, len(texts), EMBED_BATCH):
         vectors.extend(await ollama.embed(texts[start : start + EMBED_BATCH]))
+        if on_chunk_progress:
+            done = min(start + EMBED_BATCH, len(texts))
+            elapsed = time.monotonic() - started
+            rate = done / elapsed if elapsed > 0 else 0
+            remaining = (len(texts) - done) / rate if rate > 0 else 0
+            on_chunk_progress(done, len(texts), rate, remaining)
 
     ordinals = store.add(vectors)
 
