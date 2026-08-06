@@ -240,7 +240,7 @@ export default function Documents({ target, onConsumeTarget }) {
                     disabled={page <= 1}
                     aria-label="Previous page"
                   >
-                    <IconChevron width={13} height={13} className="rot-90" />
+                    <IconChevron width={13} height={13} className="rot-180" />
                   </button>
 
                   <form
@@ -268,7 +268,7 @@ export default function Documents({ target, onConsumeTarget }) {
                     disabled={page >= pdf.numPages}
                     aria-label="Next page"
                   >
-                    <IconChevron width={13} height={13} className="rot-270" />
+                    <IconChevron width={13} height={13} />
                   </button>
 
                   <div className="docs-zoom">

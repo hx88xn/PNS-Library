@@ -196,12 +196,10 @@
   opacity: 0.35;
 }
 
-/* Chevrons point up by default; these need left and right. */
-.rot-90 {
-  transform: rotate(90deg);
-}
-.rot-270 {
-  transform: rotate(-90deg);
+/* IconChevron is a right-pointing chevron. "Next" uses it as drawn; only
+   "previous" needs turning. */
+.rot-180 {
+  transform: rotate(180deg);
 }
 
 .docs-page {
