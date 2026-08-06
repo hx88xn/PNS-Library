@@ -3,7 +3,7 @@ import { IconSend, IconDoc, IconChevron } from '../components/Icons.jsx'
 import HullLines from '../components/HullLines.jsx'
 import * as api from '../lib/api.js'
 
-export default function Chat({ thread, collection, onSend, onPatchLast }) {
+export default function Chat({ thread, collection, onSend, onPatchLast, onOpenCitation }) {
   const [draft, setDraft] = useState('')
   const [streaming, setStreaming] = useState(false)
   const [openers, setOpeners] = useState(null)
@@ -148,16 +148,33 @@ export default function Chat({ thread, collection, onSend, onPatchLast }) {
                         <span className="sources-count eyebrow">{m.sources.length}</span>
                       </summary>
                       <ul>
-                        {m.sources.map((s) => (
-                          <li key={s.id}>
-                            <span className="source">
-                              <IconDoc width={14} height={14} />
-                              <span className="source-doc">{s.doc}</span>
-                              {s.section && <span className="source-sec">{s.section}</span>}
-                              {s.page != null && <span className="source-pg eyebrow">p. {s.page}</span>}
-                            </span>
-                          </li>
-                        ))}
+                        {m.sources.map((s) => {
+                          // A citation without a document_id predates source
+                          // files being kept, so there is nothing to open. It
+                          // stays readable, it just isn't a button.
+                          const openable = s.document_id != null
+                          const Tag = openable ? 'button' : 'span'
+                          return (
+                            <li key={s.id}>
+                              <Tag
+                                className={`source ${openable ? 'is-openable' : ''}`}
+                                {...(openable
+                                  ? {
+                                      onClick: () => onOpenCitation?.(s),
+                                      title: `Open ${s.doc}${s.page != null ? ` at page ${s.page}` : ''}`
+                                    }
+                                  : {})}
+                              >
+                                <IconDoc width={14} height={14} />
+                                <span className="source-doc">{s.doc}</span>
+                                {s.section && <span className="source-sec">{s.section}</span>}
+                                {s.page != null && (
+                                  <span className="source-pg eyebrow">p. {s.page}</span>
+                                )}
+                              </Tag>
+                            </li>
+                          )
+                        })}
                       </ul>
                     </details>
                   )}

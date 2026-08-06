@@ -159,6 +159,7 @@ async def _generate(
     citations = [
         Citation(
             id=chunk["id"],
+            document_id=chunk.get("document_id"),
             doc=chunk["doc"],
             section=chunk.get("section") or "",
             page=chunk.get("page"),

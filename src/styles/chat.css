@@ -328,6 +328,32 @@
   color: var(--ink-3);
 }
 
+/* A citation that can be opened. Quiet at rest -- these sit under every
+   answer and eight of them shouting would drown the answer itself -- but it
+   moves and underlines its reference on hover, so it reads as a way in. */
+.source.is-openable {
+  cursor: pointer;
+  transition: border-color 140ms var(--ease), background-color 140ms var(--ease),
+    transform 140ms var(--ease);
+}
+
+.source.is-openable:hover {
+  border-color: var(--steel-2);
+  background: #f4f9fe;
+  transform: translateY(-1px);
+}
+
+.source.is-openable:hover .source-doc {
+  color: var(--steel);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.source.is-openable:focus-visible {
+  outline: 2px solid var(--sonar);
+  outline-offset: 2px;
+}
+
 /* Composer */
 
 .composer {

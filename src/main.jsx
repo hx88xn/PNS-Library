@@ -17,6 +17,7 @@ import './styles/workspace.css'
 import './styles/chat.css'
 import './styles/retriever.css'
 import './styles/ingest.css'
+import './styles/documents.css'
 
 import App from './App.jsx'
 

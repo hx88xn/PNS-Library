@@ -156,6 +156,8 @@ def row_to_chunk(row: sqlite3.Row) -> dict[str, Any]:
     """Map a chunks row to the shape the frontend already renders."""
     return {
         "id": row["id"],
+        # Carried so a citation or a search hit can open the source document.
+        "document_id": row["document_id"],
         "doc": row["doc"],
         "title": row["title"],
         "section": row["section"] or "",

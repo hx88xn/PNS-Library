@@ -1,8 +1,15 @@
 import { useEffect, useRef } from 'react'
-import { IconChat, IconRetriever, IconChevron, IconPlus, IconIngest } from './Icons.jsx'
+import {
+  IconChat,
+  IconRetriever,
+  IconChevron,
+  IconPlus,
+  IconIngest,
+  IconLibrary
+} from './Icons.jsx'
 
 /**
- * Two tabs, each of which opens and closes on its own.
+ * Four tabs, each of which opens and closes on its own.
  * Opening one makes it the active view; closing both leaves the rail alone.
  */
 export default function Sidebar({
@@ -60,6 +67,17 @@ export default function Sidebar({
           aria-label="Ingest"
         >
           <IconIngest width={20} height={20} />
+        </button>
+        <button
+          className={`rail-btn ${view === 'documents' ? 'is-active' : ''}`}
+          onClick={() => {
+            setView('documents')
+            if (!openTabs.documents) toggleTab('documents')
+          }}
+          title="Documents"
+          aria-label="Documents"
+        >
+          <IconLibrary width={20} height={20} />
         </button>
         <button
           className={`rail-btn ${view === 'retriever' ? 'is-active' : ''}`}
@@ -182,7 +200,38 @@ export default function Sidebar({
             </div>
           </section>
 
-          {/* ── Tab 3: Retriever ────────────────────────────────────────── */}
+          {/* ── Tab 3: Documents ────────────────────────────────────────── */}
+          <section className={`tab ${openTabs.documents ? 'is-open' : ''}`}>
+            <h2 className="tab-head">
+              <button
+                className="tab-toggle"
+                onClick={() => {
+                  toggleTab('documents')
+                  setView('documents')
+                }}
+                aria-expanded={openTabs.documents}
+              >
+                <IconChevron width={14} height={14} className="tab-chevron" />
+                <IconLibrary width={15} height={15} />
+                <span>Documents</span>
+              </button>
+              <span className="tab-count eyebrow">{health?.document_count ?? 0}</span>
+            </h2>
+
+            <div className="tab-body">
+              <button
+                className={`ingest-shortcut ${view === 'documents' ? 'is-active' : ''}`}
+                onClick={() => setView('documents')}
+              >
+                <span>Open the sources</span>
+              </button>
+              <p className="tab-note">
+                Every citation in Chat is a link into the page it came from.
+              </p>
+            </div>
+          </section>
+
+          {/* ── Tab 4: Retriever ────────────────────────────────────────── */}
           <section className={`tab ${openTabs.retriever ? 'is-open' : ''}`}>
             <h2 className="tab-head">
               <button

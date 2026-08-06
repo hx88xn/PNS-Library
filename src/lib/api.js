@@ -115,6 +115,39 @@ export function documents() {
   return request('/api/documents')
 }
 
+/**
+ * The original file, as an ArrayBuffer.
+ *
+ * Fetched rather than pointed at: the corpus is RESTRICTED and every endpoint
+ * needs the bearer token, which an <iframe src> or a pdf.js URL load cannot
+ * carry. The viewer is handed the bytes instead.
+ */
+export async function documentFile(id, signal) {
+  let response
+  try {
+    response = await fetch(`${serverUrl}/api/documents/${id}/file`, {
+      signal,
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    })
+  } catch {
+    throw new ApiError(`Cannot reach the server at ${serverUrl}.`, 0)
+  }
+
+  if (!response.ok) {
+    const detail = await response
+      .json()
+      .then((b) => b.detail)
+      .catch(() => null)
+    throw new ApiError(detail || `Could not load the document (${response.status}).`, response.status)
+  }
+
+  return response.arrayBuffer()
+}
+
+export function documentText(id, signal) {
+  return request(`/api/documents/${id}/text`, { signal })
+}
+
 /** Upload documents. Returns immediately with a job to poll — a large PDF
  *  takes tens of minutes, which no request should hold open. */
 export async function uploadDocuments(files) {

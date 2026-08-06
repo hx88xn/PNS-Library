@@ -3,12 +3,20 @@ from __future__ import annotations
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import FileResponse
 
 from ..schemas import DocumentRecord
 from ..state import AppState
 from .deps import current_user, state
 
 router = APIRouter()
+
+MEDIA_TYPES = {
+    ".pdf": "application/pdf",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ".dxf": "image/vnd.dxf",
+}
 
 
 @router.get("/documents", response_model=list[DocumentRecord])
@@ -23,6 +31,73 @@ def documents(
     ).fetchall()
 
     return [DocumentRecord(**dict(row)) for row in rows]
+
+
+@router.get("/documents/{document_id}/file")
+def source_file(
+    document_id: int,
+    app_state: AppState = Depends(state),
+    _user: dict = Depends(current_user),
+) -> FileResponse:
+    """The original file as it was uploaded.
+
+    This is what the Documents tab renders and what a citation opens. Serving
+    the source rather than the extracted text is the point: a reader checking a
+    figure needs to see the table it came from, not the parser's reading of it.
+
+    The corpus is RESTRICTED, so this is behind the same bearer token as
+    everything else — the client fetches it and hands the viewer a blob rather
+    than pointing an <iframe> at a URL it could not authenticate.
+    """
+    row = app_state.conn.execute(
+        "SELECT filename, stored_path FROM documents WHERE id = ?", (document_id,)
+    ).fetchone()
+    if row is None:
+        raise HTTPException(status_code=404, detail="No such document.")
+
+    if not row["stored_path"]:
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail=f"{row['filename']} was indexed before source files were kept.",
+        )
+
+    path = Path(row["stored_path"])
+    if not path.is_file():
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail=f"The stored copy of {row['filename']} is missing from disk.",
+        )
+
+    return FileResponse(
+        path,
+        media_type=MEDIA_TYPES.get(path.suffix.lower(), "application/octet-stream"),
+        filename=row["filename"],
+        headers={"Content-Disposition": f'inline; filename="{row["filename"]}"'},
+    )
+
+
+@router.get("/documents/{document_id}/text")
+def source_text(
+    document_id: int,
+    app_state: AppState = Depends(state),
+    _user: dict = Depends(current_user),
+) -> dict:
+    """The parser's reading of a document, for formats no viewer can render.
+
+    DOCX, XLSX and DXF have no in-browser renderer worth shipping air-gapped,
+    so the Documents tab falls back to showing exactly what was indexed. That
+    is arguably more honest for those formats anyway: it is the text retrieval
+    actually searches.
+    """
+    row = app_state.conn.execute(
+        "SELECT d.filename, t.text FROM documents d "
+        "LEFT JOIN document_text t ON t.document_id = d.id WHERE d.id = ?",
+        (document_id,),
+    ).fetchone()
+    if row is None:
+        raise HTTPException(status_code=404, detail="No such document.")
+
+    return {"filename": row["filename"], "text": row["text"] or ""}
 
 
 @router.delete("/documents/{document_id}")

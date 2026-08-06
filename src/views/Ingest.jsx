@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { IconDoc, IconClose } from '../components/Icons.jsx'
 import * as api from '../lib/api.js'
 
-const POLL_MS = 900
 const ACCEPT = '.pdf,.docx,.xlsx,.dxf'
 
 const FORMATS = [
@@ -19,8 +18,16 @@ function duration(seconds) {
   return m ? `${m}m ${String(s).padStart(2, '0')}s` : `${s}s`
 }
 
-export default function Ingest({ onIndexChanged }) {
-  const [job, setJob] = useState(null)
+/**
+ * `job` and `setJob` are owned by the workspace, not by this panel.
+ *
+ * A 1,100-page rulebook takes tens of minutes and this view unmounts the
+ * instant you switch tabs, so a job tracked here would vanish from the
+ * interface every time you looked at something else. The ingest itself always
+ * ran on the server -- only the client's knowledge of it was being thrown
+ * away. Polling lives one level up; this panel just renders what it is given.
+ */
+export default function Ingest({ job, setJob, onIndexChanged }) {
   const [documents, setDocuments] = useState([])
   const [dragging, setDragging] = useState(false)
   const [error, setError] = useState('')
@@ -40,32 +47,21 @@ export default function Ingest({ onIndexChanged }) {
 
   useEffect(() => {
     loadDocuments()
-    api.currentJob().then((d) => setJob(d.job)).catch(() => {})
   }, [loadDocuments])
 
-  // Poll while a job is live. Stop as soon as it settles, so an idle panel
-  // isn't hitting the server every second for nothing.
+  // Refresh the library the moment a job settles, so the table gains the new
+  // rows without a manual reload.
   useEffect(() => {
     const running = job && job.phase !== 'done' && job.phase !== 'failed'
-    if (!running) {
-      if (wasRunning.current) {
-        wasRunning.current = false
-        loadDocuments()
-        onIndexChanged?.()
-      }
+    if (running) {
+      wasRunning.current = true
       return
     }
-    wasRunning.current = true
-
-    const timer = setTimeout(async () => {
-      try {
-        setJob(await api.jobStatus(job.id))
-      } catch {
-        /* transient; the next tick retries */
-      }
-    }, POLL_MS)
-    return () => clearTimeout(timer)
-  }, [job, loadDocuments, onIndexChanged])
+    if (wasRunning.current) {
+      wasRunning.current = false
+      loadDocuments()
+    }
+  }, [job, loadDocuments])
 
   async function remove(doc) {
     const label = doc.title || doc.filename

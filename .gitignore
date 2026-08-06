@@ -29,3 +29,6 @@ offline/
 
 # Generated test fixtures
 backend/hard-sample.pdf
+
+# Copied from node_modules by scripts/copy-pdfjs-assets.mjs, not authored here.
+public/pdfjs/

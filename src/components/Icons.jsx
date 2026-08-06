@@ -104,3 +104,14 @@ export const IconIngest = (p) => (
     <path d="m7.5 8.5 4.5-4.5 4.5 4.5" />
   </svg>
 )
+
+/** Documents: a shelf of bound volumes, distinct from the single sheet of IconDoc. */
+export const IconLibrary = (p) => (
+  <svg {...base} {...p}>
+    <path d="M4 4v16" />
+    <path d="M8 4v16" />
+    <path d="M12 4v16" />
+    <path d="m16.5 4.8 3.6 15.1" />
+    <path d="M3 20h18" />
+  </svg>
+)

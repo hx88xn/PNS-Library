@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 
 class Chunk(BaseModel):
     id: str
+    document_id: int | None = None
     doc: str
     title: str
     section: str = ""
@@ -67,6 +68,9 @@ class ChatRequest(BaseModel):
 
 class Citation(BaseModel):
     id: str
+    document_id: int | None = None
+    """Which document to open when the citation is clicked. Nullable because a
+    chunk ingested before this was recorded has no document row to point at."""
     doc: str
     section: str
     page: int | None
