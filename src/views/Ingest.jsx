@@ -287,7 +287,7 @@ export default function Ingest({ onIndexChanged }) {
                   <th className="num">Chunks</th>
                   <th>Collection</th>
                   <th>Status</th>
-                  <th />
+                  <th className="num">Remove</th>
                 </tr>
               </thead>
               <tbody>

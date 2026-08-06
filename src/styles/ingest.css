@@ -590,23 +590,24 @@
   text-align: right;
 }
 
+/* Visible at rest, not hover-only. Destructive actions should be quiet, but a
+   control nobody can find is not quiet — it is missing. Muted until the row is
+   pointed at, and it turns red only then. */
 .doc-remove {
   display: inline-grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
-  color: var(--ink-3);
+  width: 26px;
+  height: 26px;
+  color: var(--mist-2);
+  border: 1px solid transparent;
   border-radius: var(--r-sm);
-  opacity: 0;
-  transition: opacity 140ms var(--ease), color 140ms var(--ease),
-    background-color 140ms var(--ease);
+  transition: color 140ms var(--ease), background-color 140ms var(--ease),
+    border-color 140ms var(--ease);
 }
 
-/* Destructive, so it stays out of sight until the row is deliberately
-   pointed at — but focus reveals it too, or it is unreachable by keyboard. */
-.library-table tr:hover .doc-remove,
-.doc-remove:focus-visible {
-  opacity: 1;
+.library-table tr:hover .doc-remove {
+  color: var(--ink-3);
+  border-color: var(--mist);
 }
 
 .doc-remove:hover {
@@ -617,4 +618,9 @@
 .doc-remove:disabled {
   opacity: 1;
   cursor: progress;
+}
+
+.library-table th:last-child {
+  text-align: right;
+  padding-right: 0;
 }
