@@ -107,9 +107,31 @@ PY_TAG="cp$("$PYTHON" -c 'import sys;print(f"{sys.version_info.major}{sys.versio
 # Wheel filenames encode the Python minor version. Catching a mismatch here is
 # the difference between one clear sentence and a wall of "No matching
 # distribution found" that reads like a network fault.
-if compgen -G "$PREFIX/wheels/*-cp*-*.whl" >/dev/null; then
-  WHEEL_TAG="$(ls "$PREFIX"/wheels/*-cp*-*.whl | head -1 | grep -o 'cp[0-9]\{2,3\}' | head -1)"
-  if [[ -n "$WHEEL_TAG" && "$WHEEL_TAG" != "$PY_TAG" ]]; then
+#
+# Only VERSION-SPECIFIC wheels are comparable — those tagged cp312-cp312. A
+# stable-ABI wheel is tagged cp39-abi3 and runs on 3.9 *and later*, so reading
+# its tag as a requirement produces a false mismatch on a perfectly good
+# install. Ignore anything with abi3 in the name.
+# A version-specific wheel repeats its tag: numpy-2.5.1-cp312-cp312-<platform>.
+# Matching that with a backreference would be neater but is not portable —
+# POSIX ERE has none, and non-GNU greps reject \1 outright. Pull out every cp
+# tag and check the first two are equal instead.
+WHEEL_TAG=""
+if compgen -G "$PREFIX/wheels/*.whl" >/dev/null; then
+  for whl in "$PREFIX"/wheels/*.whl; do
+    name="$(basename "$whl")"
+    [[ "$name" == *abi3* ]] && continue
+    tags="$(grep -oE 'cp[0-9]{2,3}' <<<"$name")"
+    [[ "$(wc -l <<<"$tags")" -ge 2 ]] || continue
+    if [[ "$(sed -n 1p <<<"$tags")" == "$(sed -n 2p <<<"$tags")" ]]; then
+      WHEEL_TAG="$(sed -n 1p <<<"$tags")"
+      break
+    fi
+  done
+fi
+
+if [[ -n "$WHEEL_TAG" ]]; then
+  if [[ "$WHEEL_TAG" != "$PY_TAG" ]]; then
     cat >&2 <<EOF
 
 PYTHON VERSION MISMATCH
