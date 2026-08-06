@@ -11,8 +11,17 @@
  *     (scripts/copy-pdfjs-assets.mjs) and addressed relative to the document,
  *     which holds for both the dev server and file:// in the packaged app
  */
-import * as pdfjs from 'pdfjs-dist/build/pdf.mjs'
-import workerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url'
+// The LEGACY build, deliberately.
+//
+// pdf.js 6's modern build calls `Uint8Array.prototype.toHex` when it
+// fingerprints a document. That method shipped in Chrome 140; Electron 33
+// carries Chromium 130, so every document died on open with
+// "hashOriginal.toHex is not a function" and a blank page. The legacy build
+// feature-detects and polyfills it. Bundling it is a far smaller change than
+// moving every client PC to a new Electron, and this app's floor is whatever
+// Electron the offline installer ships.
+import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs'
+import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.mjs?url'
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
 
