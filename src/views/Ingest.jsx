@@ -25,6 +25,7 @@ export default function Ingest({ onIndexChanged }) {
   const [dragging, setDragging] = useState(false)
   const [error, setError] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [removing, setRemoving] = useState(null)
 
   const inputRef = useRef(null)
   const wasRunning = useRef(false)
@@ -65,6 +66,27 @@ export default function Ingest({ onIndexChanged }) {
     }, POLL_MS)
     return () => clearTimeout(timer)
   }, [job, loadDocuments, onIndexChanged])
+
+  async function remove(doc) {
+    const label = doc.title || doc.filename
+    if (!window.confirm(
+      `Remove "${label}" from the index?\n\n` +
+      `${doc.chunk_count} passage(s) go, and the vector index is rebuilt from ` +
+      `what remains. The original file is not touched.`
+    )) return
+
+    setError('')
+    setRemoving(doc.id)
+    try {
+      await api.removeDocument(doc.id)
+      await loadDocuments()
+      onIndexChanged?.()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setRemoving(null)
+    }
+  }
 
   async function send(fileList) {
     const files = Array.from(fileList || [])
@@ -265,6 +287,7 @@ export default function Ingest({ onIndexChanged }) {
                   <th className="num">Chunks</th>
                   <th>Collection</th>
                   <th>Status</th>
+                  <th />
                 </tr>
               </thead>
               <tbody>
@@ -282,6 +305,17 @@ export default function Ingest({ onIndexChanged }) {
                     <td>
                       <span className={`doc-status is-${d.status}`}>{d.status}</span>
                       {d.error && <span className="doc-error" title={d.error}>{d.error}</span>}
+                    </td>
+                    <td className="doc-actions">
+                      <button
+                        className="doc-remove"
+                        disabled={removing === d.id}
+                        onClick={() => remove(d)}
+                        title="Remove from the index"
+                        aria-label={`Remove ${d.filename}`}
+                      >
+                        {removing === d.id ? '…' : <IconClose width={13} height={13} />}
+                      </button>
                     </td>
                   </tr>
                 ))}

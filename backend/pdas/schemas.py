@@ -33,6 +33,11 @@ class SearchHit(BaseModel):
 class SearchResponse(BaseModel):
     results: list[SearchHit]
     total: int
+    """Ranked results returned — capped by the retrieval pool, not a corpus count."""
+    corpus_matches: int | None = None
+    """Chunks anywhere in the index literally containing every query term.
+    None when the query has no literal terms. Distinguishing this from `total`
+    stops the UI implying the ranked list is exhaustive."""
     query: str
 
 

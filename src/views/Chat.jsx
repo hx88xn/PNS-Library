@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { IconSend, IconDoc } from '../components/Icons.jsx'
+import { IconSend, IconDoc, IconChevron } from '../components/Icons.jsx'
 import HullLines from '../components/HullLines.jsx'
 import * as api from '../lib/api.js'
 
@@ -115,8 +115,12 @@ export default function Chat({ thread, collection, onSend, onPatchLast }) {
                   )}
 
                   {m.sources?.length > 0 && (
-                    <div className="sources">
-                      <p className="sources-head eyebrow">Cited</p>
+                    <details className="sources">
+                      <summary className="sources-head">
+                        <IconChevron width={12} height={12} className="sources-chevron" />
+                        <span className="eyebrow">Cited</span>
+                        <span className="sources-count eyebrow">{m.sources.length}</span>
+                      </summary>
                       <ul>
                         {m.sources.map((s) => (
                           <li key={s.id}>
@@ -129,7 +133,7 @@ export default function Chat({ thread, collection, onSend, onPatchLast }) {
                           </li>
                         ))}
                       </ul>
-                    </div>
+                    </details>
                   )}
                 </div>
               </article>

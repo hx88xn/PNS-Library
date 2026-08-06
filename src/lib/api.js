@@ -95,8 +95,8 @@ export function listChunks({ offset = 0, limit = 50, collection = 'all' } = {}, 
   return request(`/api/chunks?${params}`, { signal })
 }
 
-export function search({ q, collection = 'all', limit = 50 }, signal) {
-  const params = new URLSearchParams({ q, collection, limit })
+export function search({ q, collection = 'all', limit = 50, mode = 'ranked' }, signal) {
+  const params = new URLSearchParams({ q, collection, limit, mode })
   return request(`/api/search?${params}`, { signal })
 }
 
@@ -133,6 +133,10 @@ export async function uploadDocuments(files) {
     throw new ApiError(detail || `Upload failed (${response.status}).`, response.status)
   }
   return response.json()
+}
+
+export function removeDocument(id) {
+  return request(`/api/documents/${id}`, { method: 'DELETE' })
 }
 
 export function jobStatus(id) {

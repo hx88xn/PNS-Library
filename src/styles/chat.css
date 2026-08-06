@@ -357,3 +357,63 @@
   color: var(--ink-3);
   opacity: 0.8;
 }
+
+/* ── Citations: collapsed by default ───────────────────────────────────── */
+/* An answer is the point; its sources are the audit trail. Shown open, four
+   citation chips push every subsequent message down the scroll and turn a
+   conversation into a wall of references. */
+
+.sources {
+  margin-top: 8px;
+  padding-left: 2px;
+}
+
+.sources-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px 3px 5px;
+  list-style: none;
+  cursor: pointer;
+  color: var(--ink-3);
+  background: var(--white);
+  border: 1px solid var(--mist-2);
+  border-radius: 99px;
+  transition: color 140ms var(--ease), border-color 140ms var(--ease);
+}
+
+.sources-head::-webkit-details-marker {
+  display: none;
+}
+
+.sources-head:hover {
+  color: var(--steel);
+  border-color: var(--steel-2);
+}
+
+.sources-chevron {
+  transition: transform 200ms var(--ease);
+}
+
+.sources[open] .sources-chevron {
+  transform: rotate(90deg);
+}
+
+.sources-count {
+  padding: 0 5px;
+  color: var(--steel);
+  background: var(--mist);
+  border-radius: 99px;
+}
+
+.sources ul {
+  margin-top: 8px;
+  animation: cite-in 220ms var(--ease) both;
+}
+
+@keyframes cite-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}

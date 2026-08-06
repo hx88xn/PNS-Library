@@ -561,3 +561,20 @@
   border-color: var(--steel);
   background: var(--mist);
 }
+
+/* ── Rail ──────────────────────────────────────────────────────────────── */
+/* With the panel open, its three tab headers already name the sections — the
+   rail icons repeat them. Fade the rail back so it reads as a spine rather
+   than a second navigation, and return it when the panel is away. */
+
+.rail.is-quiet .rail-btn {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-6px);
+  transition: opacity 200ms var(--ease), transform 260ms var(--ease);
+}
+
+.rail-btn {
+  transition: opacity 260ms var(--ease) 80ms, transform 300ms var(--ease) 80ms,
+    color 140ms var(--ease), background-color 140ms var(--ease);
+}

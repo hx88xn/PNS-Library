@@ -38,7 +38,7 @@ export default function Sidebar({
   return (
     <aside className={`sidebar ${open ? '' : 'is-collapsed'}`}>
       {/* Rail — always reachable, even with both tabs closed */}
-      <nav className="rail" aria-label="Sections">
+      <nav className={`rail ${open ? 'is-quiet' : ''}`} aria-label="Sections">
         <button
           className={`rail-btn ${view === 'chat' ? 'is-active' : ''}`}
           onClick={() => {

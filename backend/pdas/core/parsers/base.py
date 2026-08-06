@@ -32,6 +32,10 @@ class ParsedDocument:
     pages: int | None = None
     kind: str = "text"
     """text | drawing — drawings are indexed as metadata, not prose."""
+    coverage: float = 1.0
+    """Fraction of the source's own text that survived parsing. Below 1.0 means
+    something was dropped; the PDF parser falls back to plain extraction rather
+    than index a document with a hole in it."""
 
 
 class ParserError(RuntimeError):

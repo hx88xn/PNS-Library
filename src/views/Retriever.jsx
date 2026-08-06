@@ -20,10 +20,14 @@ export default function Retriever({ collection, setCollection, collections }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [expanded, setExpanded] = useState(() => new Set())
+  const [corpusMatches, setCorpusMatches] = useState(null)
+  // 'ranked' = best matches first; 'all' = every chunk containing the terms,
+  // which is what you need when checking a document was ingested completely.
+  const [mode, setMode] = useState('ranked')
 
   const abortRef = useRef(null)
 
-  const load = useCallback(async (q, coll) => {
+  const load = useCallback(async (q, coll, searchMode) => {
     abortRef.current?.abort()
     const controller = new AbortController()
     abortRef.current = controller
@@ -33,7 +37,11 @@ export default function Retriever({ collection, setCollection, collections }) {
 
     try {
       if (q.trim()) {
-        const data = await api.search({ q: q.trim(), collection: coll, limit: PAGE_SIZE }, controller.signal)
+        const data = await api.search(
+          { q: q.trim(), collection: coll, limit: PAGE_SIZE, mode: searchMode },
+          controller.signal
+        )
+        setCorpusMatches(data.corpus_matches)
         setResults(
           data.results.map((hit) => ({
             chunk: hit.chunk,
@@ -47,6 +55,7 @@ export default function Retriever({ collection, setCollection, collections }) {
         const data = await api.listChunks({ limit: PAGE_SIZE, collection: coll }, controller.signal)
         setResults(data.results.map((chunk) => ({ chunk, relevance: 0, matchedTerms: [] })))
         setTotal(data.total)
+        setCorpusMatches(null)
       }
     } catch (err) {
       if (err.name === 'AbortError') return
@@ -60,9 +69,12 @@ export default function Retriever({ collection, setCollection, collections }) {
 
   // Debounce the query; a collection change applies at once.
   useEffect(() => {
-    const timer = setTimeout(() => load(query, collection), query ? DEBOUNCE_MS : 0)
+    const timer = setTimeout(() => load(query, collection, mode), query ? DEBOUNCE_MS : 0)
     return () => clearTimeout(timer)
-  }, [query, collection, load])
+  }, [query, collection, mode, load])
+
+  // A new query starts ranked; "show all" is a deliberate step from there.
+  useEffect(() => setMode('ranked'), [query])
 
   useEffect(() => () => abortRef.current?.abort(), [])
 
@@ -113,8 +125,25 @@ export default function Retriever({ collection, setCollection, collections }) {
               <span className="retriever-loading">Searching the index…</span>
             ) : searching ? (
               <>
-                <strong>{total}</strong> {total === 1 ? 'chunk' : 'chunks'} match{' '}
+                <strong>{total}</strong>{' '}
+                {mode === 'all' ? 'chunks contain' : 'best matches for'}{' '}
                 <span className="q">“{query.trim()}”</span>
+                {mode === 'ranked' && corpusMatches != null && corpusMatches > total && (
+                  <>
+                    {' · '}
+                    <button className="show-all" onClick={() => setMode('all')}>
+                      show all {corpusMatches}
+                    </button>
+                  </>
+                )}
+                {mode === 'all' && (
+                  <>
+                    {' · '}
+                    <button className="show-all" onClick={() => setMode('ranked')}>
+                      rank by relevance
+                    </button>
+                  </>
+                )}
               </>
             ) : (
               <>
@@ -136,7 +165,7 @@ export default function Retriever({ collection, setCollection, collections }) {
           <div className="retriever-empty">
             <p className="retriever-empty-title">Cannot reach the library</p>
             <p className="retriever-empty-sub">{error}</p>
-            <button className="btn-ghost" onClick={() => load(query, collection)}>
+            <button className="btn-ghost" onClick={() => load(query, collection, mode)}>
               Try again
             </button>
           </div>

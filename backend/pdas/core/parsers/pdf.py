@@ -91,6 +91,22 @@ def parse(path: Path) -> ParsedDocument:
         body_size = _body_size(lines)
         blocks = _to_blocks(lines, tables, body_size, document.page_count)
 
+        # Coverage check. Two steps here can drop real text: a falsely detected
+        # table excludes the body under it, and furniture detection could flag
+        # a genuine repeated clause. Both are silent, and a search over a
+        # document missing a third of its text still looks like it works.
+        #
+        # Compare what we kept against what the library saw, and if too much is
+        # missing, fall back to plain extraction rather than index a hole.
+        raw = "".join(page.get_text() for page in document)
+        kept = sum(len(b.text) for b in blocks)
+        coverage = _coverage(kept, raw)
+
+        if coverage < MIN_COVERAGE:
+            blocks = _fallback_blocks(document)
+            kept = sum(len(b.text) for b in blocks)
+            coverage = _coverage(kept, raw)
+
         head = " ".join(b.text for b in blocks[:25])[:3000]
         title = (document.metadata or {}).get("title") or _first_heading(blocks)
 
@@ -101,9 +117,50 @@ def parse(path: Path) -> ParsedDocument:
             revision=_first(_REVISION, head),
             pages=document.page_count,
             kind="text",
+            coverage=coverage,
         )
     finally:
         document.close()
+
+
+MIN_COVERAGE = 0.90
+"""Below this, the layout-aware path is assumed to have gone wrong.
+
+Losing a tenth of a document is tolerable — it is mostly the furniture we
+meant to drop. Losing a third means a false table detection swallowed real
+content, and a search over the remainder still looks like it works, which is
+the dangerous part.
+"""
+
+
+def _coverage(kept: int, raw: str) -> float:
+    """Fraction of the library's own text that survived our parsing.
+
+    Whitespace is ignored on both sides: line joining changes it legitimately,
+    and counting it would make the ratio meaningless.
+    """
+    raw_chars = len(re.sub(r"\s+", "", raw))
+    if raw_chars == 0:
+        return 1.0
+    return min(1.0, kept / raw_chars)
+
+
+def _fallback_blocks(document: fitz.Document) -> list[Block]:
+    """Plain page-by-page extraction, keeping page numbers.
+
+    No column ordering, no table structure, no furniture removal — but nothing
+    dropped either. Used when the layout-aware path loses too much: degraded
+    structure beats missing content, because a citation to slightly muddled
+    text is checkable and a citation to text that was never indexed does not
+    exist at all.
+    """
+    blocks: list[Block] = []
+    for page_number, page in enumerate(document, start=1):
+        for raw in page.get_text().split("\n"):
+            text = raw.strip()
+            if text:
+                blocks.append(Block(text=text, page=page_number, section=""))
+    return blocks
 
 
 # ── Tables ───────────────────────────────────────────────────────────────

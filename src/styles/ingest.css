@@ -581,3 +581,40 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ── Remove ────────────────────────────────────────────────────────────── */
+
+.doc-actions {
+  width: 34px;
+  padding-right: 0 !important;
+  text-align: right;
+}
+
+.doc-remove {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: var(--ink-3);
+  border-radius: var(--r-sm);
+  opacity: 0;
+  transition: opacity 140ms var(--ease), color 140ms var(--ease),
+    background-color 140ms var(--ease);
+}
+
+/* Destructive, so it stays out of sight until the row is deliberately
+   pointed at — but focus reveals it too, or it is unreachable by keyboard. */
+.library-table tr:hover .doc-remove,
+.doc-remove:focus-visible {
+  opacity: 1;
+}
+
+.doc-remove:hover {
+  color: #c0453e;
+  background: #fdf1f0;
+}
+
+.doc-remove:disabled {
+  opacity: 1;
+  cursor: progress;
+}

@@ -322,6 +322,12 @@ async def reindex(
     """
     rows = conn.execute("SELECT id, text FROM chunks ORDER BY rowid").fetchall()
     if not rows:
+        # Nothing left: drop the index rather than leave vectors behind with no
+        # rows to resolve them to. Health would otherwise report a size
+        # mismatch forever, and a search could return a deleted document.
+        settings.index_path.unlink(missing_ok=True)
+        store.reset(store.dim or 1)
+        store.save(conn, settings.embed_model)
         return 0
 
     # Detect the dimension from the model itself rather than hardcoding it, so

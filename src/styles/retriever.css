@@ -369,3 +369,17 @@ mark {
   font-size: 12px;
   color: var(--steel);
 }
+
+/* Ranked results are capped by the retrieval pool, so the count is "best N",
+   not "how many exist". This is the way to the full literal list. */
+.show-all {
+  font-size: 12.5px;
+  color: var(--steel);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: rgba(23, 84, 140, 0.35);
+}
+
+.show-all:hover {
+  text-decoration-color: var(--steel);
+}

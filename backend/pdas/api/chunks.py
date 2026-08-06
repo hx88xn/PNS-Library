@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Query
 
+from ..core.bm25 import tokenize
 from ..core.retrieval import retrieve
 from ..db import row_to_chunk
 from ..schemas import Chunk, ChunkListResponse, Collection, SearchHit, SearchResponse
@@ -67,9 +68,18 @@ async def search(
     q: str = Query("", description="Empty returns nothing; use /chunks to browse"),
     collection: str = "all",
     limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    mode: str = Query("ranked", pattern="^(ranked|all)$"),
     app_state: AppState = Depends(state),
     user: dict = Depends(current_user),
 ) -> SearchResponse:
+    # mode=all bypasses ranking and returns every chunk literally containing
+    # the terms, in document order. Ranked mode answers "what is most relevant";
+    # this answers "where does this appear", which is what you need when
+    # checking whether a document was ingested completely.
+    if mode == "all":
+        return _literal_search(app_state, q, collection, limit, offset, user)
+
     hits = await retrieve(
         query=q,
         conn=app_state.conn,
@@ -97,8 +107,85 @@ async def search(
             for hit in hits
         ],
         total=len(hits),
+        corpus_matches=_literal_matches(app_state, q, collection),
         query=q,
     )
+
+
+def _literal_search(
+    app_state: AppState,
+    query: str,
+    collection: str,
+    limit: int,
+    offset: int,
+    user: dict,
+) -> SearchResponse:
+    """Every chunk containing all the query terms, in document order."""
+    terms = [t for t in tokenize(query) if len(t) > 1]
+    if not terms:
+        return SearchResponse(results=[], total=0, corpus_matches=0, query=query)
+
+    clauses = " AND ".join("lower(text) LIKE ?" for _ in terms)
+    params: list = [f"%{t.lower()}%" for t in terms]
+    where = f"WHERE {clauses}"
+    if collection != "all":
+        where += " AND collection = ?"
+        params.append(collection)
+
+    total = app_state.conn.execute(
+        f"SELECT COUNT(*) AS n FROM chunks {where}", params
+    ).fetchone()["n"]
+
+    rows = app_state.conn.execute(
+        f"SELECT * FROM chunks {where} ORDER BY doc, ordinal LIMIT ? OFFSET ?",
+        [*params, limit, offset],
+    ).fetchall()
+
+    if rows:
+        _log_query(app_state, user["service_no"], "search", query,
+                   [r["id"] for r in rows[:10]])
+
+    return SearchResponse(
+        results=[
+            SearchHit(
+                chunk=Chunk(**row_to_chunk(row)),
+                # No ranking here, so no relevance to report. A bar filled from
+                # a meaningless number would be worse than none.
+                relevance=0.0,
+                matched_terms=terms,
+            )
+            for row in rows
+        ],
+        total=total,
+        corpus_matches=total,
+        query=query,
+    )
+
+
+def _literal_matches(app_state: AppState, query: str, collection: str) -> int | None:
+    """How many chunks in the whole corpus literally contain every query term.
+
+    Ranked results are capped by the retrieval pool, so `total` is "the best N
+    we found", not "how many exist" — searching a 9,000-chunk index for a
+    common term showed 30 when 105 chunks contained it. Reporting only the
+    ranked count reads as completeness and quietly understates the corpus,
+    which matters when the search is being used to check what was ingested.
+
+    Returns None when the query has no literal terms to count.
+    """
+    terms = [t for t in tokenize(query) if len(t) > 1]
+    if not terms:
+        return None
+
+    clauses = " AND ".join("lower(text) LIKE ?" for _ in terms)
+    params: list = [f"%{t.lower()}%" for t in terms]
+
+    sql = f"SELECT COUNT(*) AS n FROM chunks WHERE {clauses}"
+    if collection != "all":
+        sql += " AND collection = ?"
+        params.append(collection)
+
+    return app_state.conn.execute(sql, params).fetchone()["n"]
 
 
 @router.get("/collections", response_model=list[Collection])
