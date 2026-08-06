@@ -96,3 +96,11 @@ export const IconMaximize = (p) => (
     <rect x="5" y="5" width="14" height="14" rx="1.5" />
   </svg>
 )
+
+export const IconIngest = (p) => (
+  <svg {...base} {...p}>
+    <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
+    <path d="M12 16V4" />
+    <path d="m7.5 8.5 4.5-4.5 4.5 4.5" />
+  </svg>
+)

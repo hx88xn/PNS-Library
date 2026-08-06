@@ -1,4 +1,4 @@
-import { IconChat, IconRetriever, IconChevron, IconPlus } from './Icons.jsx'
+import { IconChat, IconRetriever, IconChevron, IconPlus, IconIngest } from './Icons.jsx'
 
 /**
  * Two tabs, each of which opens and closes on its own.
@@ -17,7 +17,8 @@ export default function Sidebar({
   collection,
   setCollection,
   collections,
-  health
+  health,
+  job
 }) {
   const indexed = health?.chunk_count ?? 0
 
@@ -35,6 +36,17 @@ export default function Sidebar({
           aria-label="Chat"
         >
           <IconChat width={20} height={20} />
+        </button>
+        <button
+          className={`rail-btn ${view === 'ingest' ? 'is-active' : ''}`}
+          onClick={() => {
+            setView('ingest')
+            if (!openTabs.ingest) toggleTab('ingest')
+          }}
+          title="Ingest"
+          aria-label="Ingest"
+        >
+          <IconIngest width={20} height={20} />
         </button>
         <button
           className={`rail-btn ${view === 'retriever' ? 'is-active' : ''}`}
@@ -105,7 +117,56 @@ export default function Sidebar({
             </div>
           </section>
 
-          {/* ── Tab 2: Retriever ────────────────────────────────────────── */}
+          {/* ── Tab 2: Ingest ───────────────────────────────────────────── */}
+          <section className={`tab ${openTabs.ingest ? 'is-open' : ''}`}>
+            <h2 className="tab-head">
+              <button
+                className="tab-toggle"
+                onClick={() => {
+                  toggleTab('ingest')
+                  setView('ingest')
+                }}
+                aria-expanded={openTabs.ingest}
+              >
+                <IconChevron width={14} height={14} className="tab-chevron" />
+                <IconIngest width={15} height={15} />
+                <span>Ingest</span>
+              </button>
+              {job && job.phase !== 'done' && job.phase !== 'failed' && (
+                <span className="tab-live" title="Indexing" aria-label="Indexing" />
+              )}
+            </h2>
+
+            <div className="tab-body">
+              <button
+                className={`ingest-shortcut ${view === 'ingest' ? 'is-active' : ''}`}
+                onClick={() => setView('ingest')}
+              >
+                <span>Add documents</span>
+              </button>
+
+              <dl className="ingest-facts">
+                <div>
+                  <dt>Documents</dt>
+                  <dd>{health?.document_count ?? '—'}</dd>
+                </div>
+                <div>
+                  <dt>Passages</dt>
+                  <dd>{indexed}</dd>
+                </div>
+              </dl>
+
+              {job && job.phase !== 'done' && job.phase !== 'failed' && (
+                <p className="ingest-mini eyebrow">
+                  {job.chunks_total
+                    ? `${Math.round((job.chunks_done / job.chunks_total) * 100)}% · ${job.current}`
+                    : job.phase}
+                </p>
+              )}
+            </div>
+          </section>
+
+          {/* ── Tab 3: Retriever ────────────────────────────────────────── */}
           <section className={`tab ${openTabs.retriever ? 'is-open' : ''}`}>
             <h2 className="tab-head">
               <button

@@ -105,6 +105,7 @@ async def ingest_paths(
     classification: str = "RESTRICTED",
     on_progress=None,
     on_chunk_progress=None,
+    on_file_start=None,
 ) -> IngestResult:
     result = IngestResult()
 
@@ -113,6 +114,8 @@ async def ingest_paths(
         files.extend(collect_files(path))
 
     for path in files:
+        if on_file_start:
+            on_file_start(path.name)
         try:
             added = await _ingest_one(
                 path,

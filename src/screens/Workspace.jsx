@@ -3,6 +3,7 @@ import TitleBar from '../components/TitleBar.jsx'
 import Sidebar from '../components/Sidebar.jsx'
 import Chat from '../views/Chat.jsx'
 import Retriever from '../views/Retriever.jsx'
+import Ingest from '../views/Ingest.jsx'
 import * as api from '../lib/api.js'
 
 let nextId = 2
@@ -10,7 +11,7 @@ let nextId = 2
 export default function Workspace({ user, onSignOut }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [view, setView] = useState('chat')
-  const [openTabs, setOpenTabs] = useState({ chat: true, retriever: true })
+  const [openTabs, setOpenTabs] = useState({ chat: true, ingest: true, retriever: true })
   const [threads, setThreads] = useState([
     { id: 1, title: 'New thread', when: 'Now', messages: [] }
   ])
@@ -18,6 +19,7 @@ export default function Workspace({ user, onSignOut }) {
   const [collection, setCollection] = useState('all')
   const [collections, setCollections] = useState([])
   const [health, setHealth] = useState(null)
+  const [job, setJob] = useState(null)
 
   const thread = threads.find((t) => t.id === activeThread) ?? threads[0]
 
@@ -26,6 +28,7 @@ export default function Workspace({ user, onSignOut }) {
       const [cols, status] = await Promise.all([api.collections(), api.health()])
       setCollections(cols)
       setHealth(status)
+      api.currentJob().then((d) => setJob(d.job)).catch(() => {})
     } catch {
       setHealth(null)
     }
@@ -97,15 +100,20 @@ export default function Workspace({ user, onSignOut }) {
           setCollection={setCollection}
           collections={collections}
           health={health}
+          job={job}
         />
 
         <main className="stage">
           <div className="stage-head">
-            <h1 className="stage-title">{view === 'chat' ? 'Chat' : 'Retriever'}</h1>
+            <h1 className="stage-title">
+              {view === 'chat' ? 'Chat' : view === 'ingest' ? 'Ingest' : 'Retriever'}
+            </h1>
             <p className="stage-sub">
               {view === 'chat'
                 ? 'Design questions answered from the office library, with citations.'
-                : 'Every indexed passage in the library. Search to narrow it.'}
+                : view === 'ingest'
+                  ? 'Add documents to the library. Parsed, chunked and indexed for retrieval.'
+                  : 'Every indexed passage in the library. Search to narrow it.'}
             </p>
           </div>
 
@@ -127,6 +135,8 @@ export default function Workspace({ user, onSignOut }) {
               onSend={appendMessage}
               onPatchLast={patchLastMessage}
             />
+          ) : view === 'ingest' ? (
+            <Ingest onIndexChanged={refresh} />
           ) : (
             <Retriever
               collection={collection}

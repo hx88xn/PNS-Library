@@ -26,3 +26,6 @@ offline/
 
 # Local dev overrides
 .env
+
+# Generated test fixtures
+backend/hard-sample.pdf

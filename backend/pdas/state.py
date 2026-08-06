@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 
 from .config import Settings, get_settings
 from .core.bm25 import SparseIndex
+from .core.jobs import JobStore
 from .core.ollama import OllamaClient
 from .core.store import VectorStore
 from .db import connect, init_db
@@ -19,6 +20,7 @@ class AppState:
     ollama: OllamaClient
     store: VectorStore
     sparse: SparseIndex
+    jobs: JobStore
     index_error: str | None = field(default=None)
     """Set when the index refuses to load — surfaced by /api/health rather than
     crashing the server, so an operator can see why and run a reindex."""
@@ -50,6 +52,7 @@ def build_state(settings: Settings | None = None) -> AppState:
         ollama=OllamaClient(settings),
         store=store,
         sparse=sparse,
+        jobs=JobStore(),
         index_error=error,
     )
 

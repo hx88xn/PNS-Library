@@ -19,6 +19,16 @@ from .parsers.base import Block
 
 CHARS_PER_TOKEN = 4
 
+MIN_CHUNK_CHARS = 160
+"""Below this a chunk is a fragment, not a passage.
+
+Two consecutive headings ("SECTION 2" then "Hull Structural Design") used to
+emit a 9-character chunk carrying no information. Retrieved, it tells the model
+nothing; embedded, it is a near-duplicate of every other heading in the
+document and pollutes the dense index. Fragments are merged forward into the
+passage they introduce.
+"""
+
 
 @dataclass
 class Chunk:
@@ -125,7 +135,63 @@ def chunk_blocks(
                 )
             )
 
-    return chunks
+    return _merge_fragments(chunks)
+
+
+def _merge_fragments(chunks: list[Chunk]) -> list[Chunk]:
+    """Fold sub-threshold chunks into the passage they introduce.
+
+    A heading split from its body is worse than useless: it embeds to something
+    close to every other heading in the document, so it competes for retrieval
+    slots while carrying no answer.
+    """
+    if not chunks:
+        return chunks
+
+    merged: list[Chunk] = []
+    carry: Chunk | None = None
+
+    for chunk in chunks:
+        if carry is not None:
+            chunk = Chunk(
+                text=f"{carry.text}\n{chunk.text}",
+                # Keep the heading's own section and page: it is the more
+                # precise locator, and it is what a citation should point at.
+                section=carry.section or chunk.section,
+                page=carry.page if carry.page is not None else chunk.page,
+                ordinal=chunk.ordinal,
+                token_count=estimate_tokens(f"{carry.text}\n{chunk.text}"),
+            )
+            carry = None
+
+        if len(chunk.text) < MIN_CHUNK_CHARS:
+            carry = chunk
+            continue
+
+        merged.append(chunk)
+
+    # A trailing fragment has nothing to merge into; append it to the previous
+    # chunk rather than dropping content.
+    if carry is not None:
+        if merged:
+            last = merged[-1]
+            merged[-1] = Chunk(
+                text=f"{last.text}\n{carry.text}",
+                section=last.section,
+                page=last.page,
+                ordinal=last.ordinal,
+                token_count=estimate_tokens(f"{last.text}\n{carry.text}"),
+            )
+        else:
+            merged.append(carry)
+
+    return [
+        Chunk(
+            text=c.text, section=c.section, page=c.page,
+            ordinal=i, token_count=c.token_count,
+        )
+        for i, c in enumerate(merged)
+    ]
 
 
 def _join(blocks: list[Block]) -> str:

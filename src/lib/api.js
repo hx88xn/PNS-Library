@@ -108,6 +108,41 @@ export function documents() {
   return request('/api/documents')
 }
 
+/** Upload documents. Returns immediately with a job to poll — a large PDF
+ *  takes tens of minutes, which no request should hold open. */
+export async function uploadDocuments(files) {
+  const body = new FormData()
+  for (const file of files) body.append('files', file, file.name)
+
+  let response
+  try {
+    response = await fetch(`${serverUrl}/api/ingest`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body // no Content-Type: the browser sets the multipart boundary
+    })
+  } catch {
+    throw new ApiError(`Cannot reach the server at ${serverUrl}.`, 0)
+  }
+
+  if (!response.ok) {
+    const detail = await response
+      .json()
+      .then((b) => b.detail)
+      .catch(() => null)
+    throw new ApiError(detail || `Upload failed (${response.status}).`, response.status)
+  }
+  return response.json()
+}
+
+export function jobStatus(id) {
+  return request(`/api/ingest/${id}`)
+}
+
+export function currentJob() {
+  return request('/api/ingest')
+}
+
 /**
  * Stream a grounded answer.
  *
