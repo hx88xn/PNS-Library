@@ -32,6 +32,26 @@ def ingest(
     classification: str = typer.Option("RESTRICTED", "--classification"),
 ) -> None:
     """Parse, chunk, embed and index documents."""
+    # A path that does not exist used to report "Indexed 0 documents" and exit
+    # 0, which reads as "your files had nothing in them". The usual cause is a
+    # Windows path under WSL — D:\dir\file.pdf instead of /mnt/d/dir/file.pdf.
+    missing = [p for p in paths if not p.exists()]
+    if missing:
+        typer.secho("Path does not exist:", fg=typer.colors.RED, err=True)
+        for path in missing:
+            typer.echo(f"  {path}", err=True)
+            text = str(path)
+            if "\\" in text or (len(text) > 1 and text[1] == ":"):
+                drive = text[0].lower()
+                converted = text[2:].replace("\\", "/").lstrip("/")
+                typer.secho(
+                    f"  That is a Windows path. Under WSL, use:\n"
+                    f"      /mnt/{drive}/{converted}",
+                    fg=typer.colors.YELLOW,
+                    err=True,
+                )
+        raise typer.Exit(code=1)
+
     state = build_state()
 
     async def run() -> ingest_core.IngestResult:
