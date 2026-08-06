@@ -32,6 +32,9 @@ class ParsedDocument:
     pages: int | None = None
     kind: str = "text"
     """text | drawing — drawings are indexed as metadata, not prose."""
+    raw_text: str = ""
+    """The source's own text before chunking. Stored so occurrence counts can
+    be reported against the document rather than the overlapping chunks."""
     coverage: float = 1.0
     """Fraction of the source's own text that survived parsing. Below 1.0 means
     something was dropped; the PDF parser falls back to plain extraction rather

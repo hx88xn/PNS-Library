@@ -108,6 +108,7 @@ async def search(
         ],
         total=len(hits),
         corpus_matches=_literal_matches(app_state, q, collection),
+        occurrences=_occurrences(app_state, q, collection),
         query=q,
     )
 
@@ -160,6 +161,44 @@ def _literal_search(
         corpus_matches=total,
         query=query,
     )
+
+
+def _occurrences(app_state: AppState, query: str, collection: str) -> int | None:
+    """How many times the query appears in the SOURCE documents.
+
+    Counted against the stored original text, not the chunks. Chunks overlap by
+    80 tokens so a criterion split across a boundary stays findable from both
+    sides — which means text in the overlap is stored twice, and counting a
+    term across chunks overstates the document by around 20% (measured). That
+    error runs in the reassuring direction for anyone checking whether a file
+    was ingested completely, so the count comes from what the parser actually
+    read.
+
+    Returns None when no source text is stored — documents ingested before this
+    was recorded would otherwise silently contribute zero.
+    """
+    needle = query.strip().lower()
+    if len(needle) < 2:
+        return None
+
+    stored, total = app_state.conn.execute(
+        "SELECT (SELECT COUNT(*) FROM document_text) AS stored, "
+        "       (SELECT COUNT(*) FROM documents WHERE status = 'indexed') AS total"
+    ).fetchone()
+    if total == 0 or stored < total:
+        return None
+
+    sql = (
+        "SELECT SUM((length(lower(t.text)) - "
+        "            length(replace(lower(t.text), ?, ''))) / ?) AS n "
+        "FROM document_text t"
+    )
+    params: list = [needle, len(needle)]
+    if collection != "all":
+        sql += " JOIN documents d ON d.id = t.document_id WHERE d.collection = ?"
+        params.append(collection)
+
+    return app_state.conn.execute(sql, params).fetchone()["n"] or 0
 
 
 def _literal_matches(app_state: AppState, query: str, collection: str) -> int | None:

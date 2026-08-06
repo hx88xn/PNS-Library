@@ -21,6 +21,7 @@ export default function Retriever({ collection, setCollection, collections }) {
   const [error, setError] = useState('')
   const [expanded, setExpanded] = useState(() => new Set())
   const [corpusMatches, setCorpusMatches] = useState(null)
+  const [occurrences, setOccurrences] = useState(null)
   // 'ranked' = best matches first; 'all' = every chunk containing the terms,
   // which is what you need when checking a document was ingested completely.
   const [mode, setMode] = useState('ranked')
@@ -42,6 +43,7 @@ export default function Retriever({ collection, setCollection, collections }) {
           controller.signal
         )
         setCorpusMatches(data.corpus_matches)
+        setOccurrences(data.occurrences)
         setResults(
           data.results.map((hit) => ({
             chunk: hit.chunk,
@@ -56,6 +58,7 @@ export default function Retriever({ collection, setCollection, collections }) {
         setResults(data.results.map((chunk) => ({ chunk, relevance: 0, matchedTerms: [] })))
         setTotal(data.total)
         setCorpusMatches(null)
+        setOccurrences(null)
       }
     } catch (err) {
       if (err.name === 'AbortError') return
@@ -151,6 +154,14 @@ export default function Retriever({ collection, setCollection, collections }) {
               </>
             )}
           </p>
+          {searching && occurrences != null && (
+            <span
+              className="occurrences eyebrow"
+              title="Counted in the source documents, not the chunks — chunks overlap, so counting across them would overstate it"
+            >
+              {occurrences} in source
+            </span>
+          )}
           <span className="retriever-scope eyebrow">{collectionLabel}</span>
           {collection !== 'all' && (
             <button className="scope-clear eyebrow" onClick={() => setCollection('all')}>

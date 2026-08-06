@@ -73,6 +73,7 @@ def parse(path: Path) -> ParsedDocument:
         raise ParserError("Drawing contains no title block or annotation text")
 
     return ParsedDocument(
+        raw_text="\n".join(b.text for b in blocks),
         blocks=blocks,
         title=fields.get("title") or path.stem,
         doc_ref=fields.get("drawing_no"),

@@ -58,6 +58,7 @@ def parse_docx(path: Path) -> ParsedDocument:
     title = next((b.text for b in blocks if b.heading_level), None)
 
     return ParsedDocument(
+        raw_text="\n".join(b.text for b in blocks),
         blocks=blocks,
         title=(title or path.stem).strip() or path.stem,
         doc_ref=_first(_DOC_REF, head),
@@ -105,6 +106,7 @@ def parse_xlsx(path: Path) -> ParsedDocument:
         workbook.close()
 
     return ParsedDocument(
+        raw_text="\n".join(b.text for b in blocks),
         blocks=blocks,
         title=path.stem,
         doc_ref=_first(_DOC_REF, path.stem),

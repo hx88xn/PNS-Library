@@ -57,6 +57,16 @@ CREATE INDEX IF NOT EXISTS idx_chunks_collection ON chunks(collection);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_chunks_vector ON chunks(vector_ordinal)
     WHERE vector_ordinal IS NOT NULL;
 
+-- The source's own text, as the parsing library saw it, before chunking.
+-- Kept so occurrence counts can be reported against the DOCUMENT rather than
+-- the index: chunks overlap by design, so counting a term across chunks
+-- overstates the document by around 20 percent -- and that error runs in the
+-- reassuring direction for anyone checking whether a file was fully ingested.
+CREATE TABLE IF NOT EXISTS document_text (
+    document_id INTEGER PRIMARY KEY REFERENCES documents(id) ON DELETE CASCADE,
+    text        TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS users (
     id            INTEGER PRIMARY KEY,
     service_no    TEXT    NOT NULL UNIQUE,

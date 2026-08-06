@@ -216,6 +216,12 @@ async def _ingest_one(
     # Re-ingesting replaces the previous chunks for this document.
     conn.execute("DELETE FROM chunks WHERE document_id = ?", (document_id,))
 
+    conn.execute(
+        "INSERT INTO document_text(document_id, text) VALUES(?, ?) "
+        "ON CONFLICT(document_id) DO UPDATE SET text = excluded.text",
+        (document_id, parsed.raw_text or "\n".join(b.text for b in parsed.blocks)),
+    )
+
     # Embedding dominates the runtime — measured at ~7 chunks/sec on a GPU and
     # 1–2 on CPU, so a 1,100-page document is tens of minutes. Report progress
     # per batch; without it a large file looks indistinguishable from a hang.

@@ -118,6 +118,7 @@ def parse(path: Path) -> ParsedDocument:
             pages=document.page_count,
             kind="text",
             coverage=coverage,
+            raw_text=raw,
         )
     finally:
         document.close()

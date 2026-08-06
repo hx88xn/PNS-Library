@@ -383,3 +383,14 @@ mark {
 .show-all:hover {
   text-decoration-color: var(--steel);
 }
+
+/* Counted in the source documents, not the chunks. Chunks overlap by design,
+   so counting across them overstates the document by around 20%. */
+.occurrences {
+  padding: 3px 9px;
+  color: var(--ink-2);
+  background: var(--sheet);
+  border: 1px solid var(--mist);
+  border-radius: 99px;
+  cursor: help;
+}

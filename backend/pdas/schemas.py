@@ -38,6 +38,10 @@ class SearchResponse(BaseModel):
     """Chunks anywhere in the index literally containing every query term.
     None when the query has no literal terms. Distinguishing this from `total`
     stops the UI implying the ranked list is exhaustive."""
+    occurrences: int | None = None
+    """Times the query appears in the SOURCE documents, not the chunks.
+    Chunks overlap, so counting across them overstates the document by ~20%.
+    None when any indexed document predates source-text capture."""
     query: str
 
 

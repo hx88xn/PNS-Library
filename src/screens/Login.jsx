@@ -70,9 +70,6 @@ export default function Login({ onAuthenticated }) {
 
         <div className="login-figure">
           <HullLines variant="hero" />
-          <p className="login-figure-caption eyebrow">
-            Body plan · stations 0–20 · aft sections port, forward starboard
-          </p>
         </div>
       </section>
 

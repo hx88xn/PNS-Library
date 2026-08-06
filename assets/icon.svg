@@ -5,22 +5,18 @@
       <stop offset="0.5" stop-color="#0B2C4C"/>
       <stop offset="1" stop-color="#04121F"/>
     </linearGradient>
-    <radialGradient id="glow" cx="0.32" cy="0.26" r="0.75">
-      <stop offset="0" stop-color="#35C6E0" stop-opacity="0.22"/>
+    <radialGradient id="glow" cx="0.5" cy="0.42" r="0.6">
+      <stop offset="0" stop-color="#35C6E0" stop-opacity="0.20"/>
       <stop offset="1" stop-color="#35C6E0" stop-opacity="0"/>
     </radialGradient>
     <clipPath id="field-clip">
       <rect x="0" y="0" width="1024" height="1024" rx="230" ry="230"/>
     </clipPath>
-    <filter id="lift" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="10" stdDeviation="14"
-                    flood-color="#04121F" flood-opacity="0.30"/>
-    </filter>
   </defs>
 
   <rect x="0" y="0" width="1024" height="1024" rx="230" ry="230" fill="url(#field)"/>
 
-  <g clip-path="url(#field-clip)">
+  <g clip-path="url(#field-clip)" fill="none" stroke-linecap="round">
     <rect x="0" y="0" width="1024" height="1024" fill="url(#glow)"/>
 
     <!-- Drawing paper -->
@@ -57,16 +53,27 @@
       <line x1="0" y1="960" x2="1024" y2="960"/>
     </g>
 
-    <!-- Design waterline, struck across the plan -->
-    <line x1="96" y1="618" x2="928" y2="618"
-          stroke="#35C6E0" stroke-opacity="0.40" stroke-width="9"
-          stroke-dasharray="54 30" stroke-linecap="round"/>
+    <!-- Bearing ring -->
+    <circle cx="512.0" cy="512.0" r="330" stroke="#35C6E0" stroke-opacity="0.5" stroke-width="13"/>
+    <circle cx="512.0" cy="512.0" r="268" stroke="#35C6E0" stroke-opacity="0.22" stroke-width="9"/>
 
-    <!-- Crescent: outer disc, inner disc punched out -->
-    <path fill-rule="evenodd" fill="#FFFFFF" filter="url(#lift)"
-          d="M 170.0 560.0 a 300.0 300.0 0 1 0 600.0 0 a 300.0 300.0 0 1 0 -600.0 0 M 251.0 459.0 a 300.0 300.0 0 1 0 600.0 0 a 300.0 300.0 0 1 0 -600.0 0"/>
+    <g stroke="#35C6E0" stroke-opacity="0.75" stroke-width="15">
+      <line x1="512.0" y1="162.0" x2="512.0" y2="250.0"/>
+      <line x1="512.0" y1="774.0" x2="512.0" y2="862.0"/>
+      <line x1="162.0" y1="512.0" x2="250.0" y2="512.0"/>
+      <line x1="774.0" y1="512.0" x2="862.0" y2="512.0"/>
+    </g>
 
-    <!-- Star, seated in the opening -->
-    <polygon points="619.7,234.3 664.4,300.5 741.2,278.5 692.0,341.5 736.7,407.7 661.6,380.4 612.4,443.4 615.2,363.5 540.1,336.2 616.9,314.1" fill="#FFFFFF" filter="url(#lift)"/>
+    <!-- Centreline, struck through the keel -->
+    <line x1="512.0" y1="333" x2="512.0" y2="691"
+          stroke="#35C6E0" stroke-opacity="0.45" stroke-width="9"
+          stroke-dasharray="26 18"/>
+
+    <!-- The sections themselves -->
+    <g stroke="#8FD9EA" stroke-width="21" stroke-linejoin="round">
+      <path d="M 512 661 C 609 661, 654 616, 654 482 L 654 378" />
+      <path d="M 512 661 C 579 653, 601 601, 601 505 L 601 378" />
+      <path d="M 512 661 C 534 631, 549 572, 549 512 L 549 378" />
+    </g>
   </g>
 </svg>
