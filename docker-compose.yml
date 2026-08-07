@@ -47,9 +47,16 @@ services:
     environment:
       OLLAMA_HOST: http://ollama:11434
     entrypoint: ["/bin/sh", "-c"]
-    command: >
-      ollama pull ${PDAS_LLM_MODEL:-qwen3.5:4b} &&
-      ollama pull ${PDAS_EMBED_MODEL:-bge-m3}
+    # A single-element LIST, not a string. Compose word-splits a string command
+    # into argv, which here silently discarded everything after the `&&` and
+    # left `sh -c` with just "ollama" as its script — the container started
+    # Ollama's interactive launcher instead, failed to open a TTY, and exited
+    # 0 as though the models had been pulled.
+    command:
+      - |
+        set -e
+        ollama pull "${PDAS_LLM_MODEL:-qwen3.5:4b}"
+        ollama pull "${PDAS_EMBED_MODEL:-bge-m3}"
     restart: "no"
 
   backend:
