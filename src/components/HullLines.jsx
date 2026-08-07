@@ -102,14 +102,18 @@ export default function HullLines({ variant = 'hero', className = '' }) {
             key={i}
             d={d}
             className="hl-section"
+            // Normalises every dash computation to 1, so the draw-on animation
+            // is exact whatever the path's real length. See hl-section in
+            // login.css for why a fixed dash length could not work.
+            pathLength="1"
             style={animated ? { animationDelay: `${140 + i * 58}ms` } : undefined}
           />
         ))}
       </g>
 
       {/* Sheer line, each side */}
-      <path className="hl-deck" d={sheerFwd} />
-      <path className="hl-deck" d={sheerAft} />
+      <path className="hl-deck" d={sheerFwd} pathLength="1" />
+      <path className="hl-deck" d={sheerAft} pathLength="1" />
 
       {/* Station ticks on the baseline */}
       <g className="hl-ticks">

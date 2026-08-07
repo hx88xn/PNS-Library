@@ -138,10 +138,20 @@
   stroke-width: 1;
 }
 
-/* Draw the sections on, station by station, the way they are lofted */
+/* Draw the sections on, station by station, the way they are lofted.
+ *
+ * The dash is 1 because the paths carry pathLength="1", not because they are
+ * one unit long. A fixed length cannot work here: these paths run 317–382
+ * units and every one of them is drawn with vector-effect: non-scaling-stroke,
+ * under which the dash resolves against device pixels rather than user units.
+ * The covered length then depends on the viewport and the display's pixel
+ * ratio — at 2x it came to roughly 234 units, which finished the sheer lines
+ * (167) and cut every section off at about three fifths, leaving a fan of
+ * curves stopping in mid-air below a deck line they never reached.
+ */
 .hull-lines--hero .hl-section {
-  stroke-dasharray: 420;
-  stroke-dashoffset: 420;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
   animation: loft 1100ms var(--ease) both;
 }
 
@@ -156,8 +166,8 @@
 }
 
 .hull-lines--hero .hl-deck {
-  stroke-dasharray: 420;
-  stroke-dashoffset: 420;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
   animation: loft 900ms var(--ease) 1.55s both;
 }
 
