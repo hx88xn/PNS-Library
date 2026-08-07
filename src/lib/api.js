@@ -1,8 +1,10 @@
 /**
  * Client for the PDAS backend.
  *
- * The token is held in module scope rather than localStorage: on a shared
- * terminal a session should not outlive the window.
+ * The token lives in sessionStorage: it survives a reload and dies with the
+ * tab. On a shared terminal a session should not outlive the browsing session,
+ * which is why this is not localStorage — and the server issues short-lived
+ * tokens to bound what a stored one is worth. See SESSION_KEY below.
  */
 
 /**

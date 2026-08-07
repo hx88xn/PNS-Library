@@ -316,108 +316,63 @@
 
 /* ── Sidebar: rail + the two tabs ──────────────────────────────────────── */
 
+/* One grid, two columns: an icon spine that never moves, and everything else.
+ *
+ * The rail and the panel used to be separate columns, each drawing its own copy
+ * of the same four icons — so opening the panel faded the rail icons out and
+ * faded a second set in at a different height, and the eye had to work out that
+ * the two were the same thing. There is one icon per section now, it lives in
+ * the spine, and opening the panel widens the aside to the right of it.
+ */
 .sidebar {
   display: flex;
+  flex-direction: column;
   flex: none;
+  width: calc(var(--rail-w) + var(--panel-w));
+  /* Clipped, not unmounted: the labels keep their full width and slide behind
+     the edge. Letting them reflow as the aside narrows would rewrap every
+     heading mid-slide, which reads as a stutter rather than a movement. */
+  overflow: hidden;
   background: var(--hull);
   border-right: 1px solid rgba(0, 0, 0, 0.2);
+  transition: width var(--panel-ms) var(--ease);
 }
 
-.rail {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
+.sidebar.is-collapsed {
   width: var(--rail-w);
-  padding: 10px 0;
-  background: var(--abyss-2);
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.rail-btn {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  color: rgba(232, 240, 247, 0.5);
-  border-radius: var(--r-md);
-  transition: color 140ms var(--ease), background-color 140ms var(--ease);
-}
-
-.rail-btn:hover {
-  color: var(--white);
-  background: rgba(255, 255, 255, 0.07);
-}
-
-.rail-btn.is-active {
-  color: var(--white);
-  background: rgba(53, 198, 224, 0.14);
-}
-
-/* Active marker sits on the rail edge, like a station mark */
-.rail-btn.is-active::before {
-  content: '';
-  position: absolute;
-  left: -11px;
-  top: 9px;
-  bottom: 9px;
-  width: 2px;
-  background: var(--sonar);
-  border-radius: 0 2px 2px 0;
-}
-
-.rail-foot {
-  margin-top: auto;
+.sidebar-sections {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  line-height: 1.15;
-}
-
-.rail-index {
-  font-size: 13px;
-  color: rgba(232, 240, 247, 0.72);
-  letter-spacing: 0.04em;
-}
-
-.rail-index-label {
-  font-size: 9px;
-  color: rgba(232, 240, 247, 0.32);
-}
-
-/* Panel holding the two tabs */
-
-/* Collapsing animates width to zero while the contents keep their own width
-   and are clipped. Animating the width of a flex column directly would reflow
-   the tabs as they narrowed — text rewrapping mid-slide, which reads as a
-   stutter rather than a movement. */
-.panel {
-  width: var(--panel-w);
+  /* Sections are the height of their contents, so opening one pushes the ones
+     below it — and their icons — down. The column scrolls when they outgrow
+     it, rather than each section scrolling inside its own share. */
+  flex: 1;
   min-height: 0;
-  overflow: hidden;
-  color: rgba(232, 240, 247, 0.86);
-  transition: width 340ms var(--ease);
+  overflow: hidden auto;
+  /* The spine must stay put while the sections scroll under it, and it does
+     because the icons scroll with their own sections — which is the point. */
+  scrollbar-width: thin;
 }
 
-.panel.is-closed {
-  width: 0;
-}
-
-.panel-inner {
-  display: flex;
-  flex-direction: column;
-  width: var(--panel-w);
-  height: 100%;
-  min-height: 0;
-  transition: transform 340ms var(--ease), opacity 220ms var(--ease);
-}
-
-/* Drift left slightly ahead of the edge, so it reads as sliding out rather
-   than being guillotined by the clip. */
-.panel.is-closed .panel-inner {
-  transform: translateX(-24px);
+/* Everything to the right of the spine fades with the collapse. Width alone
+   would leave labels legible in a 2px sliver on the way out. */
+.sidebar.is-collapsed .tab-toggle,
+.sidebar.is-collapsed .tab-action,
+.sidebar.is-collapsed .tab-count,
+.sidebar.is-collapsed .foot-text,
+.sidebar.is-collapsed .panel-collapse {
   opacity: 0;
+  pointer-events: none;
+}
+
+.tab-toggle,
+.tab-action,
+.tab-count,
+.foot-text,
+.panel-collapse {
+  transition: opacity 180ms var(--ease) 60ms;
 }
 
 /* A grid rather than a flex column, purely so the body can be animated.
@@ -428,42 +383,90 @@
  * spends most of the duration easing through empty space, which is the stutter
  * that reads as cheap. A fraction has no such number in it.
  *
- * flex-grow rides the same curve. The open tab claims its share of the column
- * as a flex item, and left untransitioned that claim lands in one frame — the
- * body would slide open inside a box that had already jumped to full height.
+ * The section no longer claims a share of the column — it is the height of its
+ * contents, so opening one pushes the sections below it down and takes their
+ * icons with it. An icon and the content it owns therefore stay joined.
  */
 .tab {
   display: grid;
   grid-template-rows: auto 0fr;
-  flex-grow: 0;
+  flex: none;
   min-height: 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  transition: grid-template-rows var(--tab-ms) var(--ease),
-    flex-grow var(--tab-ms) var(--ease);
+  transition: grid-template-rows var(--tab-ms) var(--ease);
 }
 
 .tab.is-open {
-  flex: 1;
   grid-template-rows: auto 1fr;
 }
 
+/* The head is the spine row: a fixed icon cell, then the name, then whatever
+   trails it. The icon cell is exactly the collapsed width, which is what keeps
+   the icon in the same place whether the panel is open or shut. */
 .tab-head {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   flex: none;
   margin: 0;
-  padding: 0 8px 0 4px;
+  padding: 0 8px 0 0;
   font-size: inherit;
   font-weight: inherit;
+}
+
+/* Fixed to the collapsed width. Nothing here may shrink, or the icon would
+   drift left as the labels arrive. */
+.tab-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--rail-w);
+  padding: 5px 0;
+}
+
+.tab-icon-box {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  color: rgba(232, 240, 247, 0.5);
+  border-radius: var(--r-md);
+  transition: color 140ms var(--ease), background-color 140ms var(--ease);
+}
+
+.tab-icon:hover .tab-icon-box {
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.tab.is-current .tab-icon-box {
+  color: var(--white);
+  background: rgba(53, 198, 224, 0.14);
+}
+
+/* Station mark on the outer edge, against the aside rather than the icon. */
+.tab.is-current .tab-icon-box::before {
+  content: '';
+  position: absolute;
+  left: -11px;
+  top: 9px;
+  bottom: 9px;
+  width: 2px;
+  background: var(--sonar);
+  border-radius: 0 2px 2px 0;
 }
 
 .tab-toggle {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   flex: 1;
   min-width: 0;
+  /* Never narrower than the panel it belongs to, so the text does not rewrap
+     while the aside is mid-slide. */
+  width: calc(var(--panel-w) - 60px);
   padding: 11px 6px;
   color: rgba(232, 240, 247, 0.58);
   font-family: var(--font-display);
@@ -518,19 +521,26 @@
   /* Clipped, not scrollable, while collapsed: a scrollbar on a zero-height
      track is what makes these animations flicker at the last frame. */
   overflow: hidden;
-  padding: 0 8px 12px;
+  /* Indented past the spine, so the content sits under its own label rather
+     than under the icon column.
+     No bottom padding while shut: a 0fr track collapses the content but not
+     the box's own padding, which left every folded section 12px tall for no
+     reason. It comes back with the section, on the same curve. */
+  padding: 0 8px 0 var(--rail-w);
   /* Was display:none, which is why none of this moved before — it is not a
      transitionable value. visibility is, near enough: the delay keeps the
      content on screen for the whole collapse and takes it out of the tab order
      only once the track has closed. Opening reverses it with no delay. */
   visibility: hidden;
-  transition: visibility 0s linear var(--tab-ms);
+  transition: visibility 0s linear var(--tab-ms),
+    padding-bottom var(--tab-ms) var(--ease);
 }
 
 .tab.is-open .tab-body {
   overflow: hidden auto;
   visibility: visible;
-  transition: visibility 0s;
+  padding-bottom: 12px;
+  transition: visibility 0s, padding-bottom var(--tab-ms) var(--ease);
 }
 
 /* Threads */
@@ -615,18 +625,26 @@
   color: var(--sonar);
 }
 
-.panel-foot {
+/* Same two columns as the sections above: the state light in the spine, where
+   it survives a collapse, and the words beside it. */
+.sidebar-foot {
   display: flex;
   align-items: center;
   gap: 7px;
   flex: none;
-  margin-top: auto;
-  padding: 8px 8px 8px 14px;
+  padding: 8px 8px 8px 0;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
   color: rgba(232, 240, 247, 0.4);
 }
 
-.panel-foot-text {
+.foot-spine {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--rail-w);
+}
+
+.foot-text {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -750,23 +768,6 @@
 .btn-ghost:hover {
   border-color: var(--steel);
   background: var(--mist);
-}
-
-/* ── Rail ──────────────────────────────────────────────────────────────── */
-/* With the panel open, its three tab headers already name the sections — the
-   rail icons repeat them. Fade the rail back so it reads as a spine rather
-   than a second navigation, and return it when the panel is away. */
-
-.rail.is-quiet .rail-btn {
-  opacity: 0;
-  pointer-events: none;
-  transform: translateX(-6px);
-  transition: opacity 200ms var(--ease), transform 260ms var(--ease);
-}
-
-.rail-btn {
-  transition: opacity 260ms var(--ease) 80ms, transform 300ms var(--ease) 80ms,
-    color 140ms var(--ease), background-color 140ms var(--ease);
 }
 
 .tab-note {

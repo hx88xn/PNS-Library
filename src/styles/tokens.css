@@ -49,4 +49,8 @@
      height, the flex claim and the chevron travel together — a chevron on its
      own clock is what made the old snap so obvious. */
   --tab-ms: 260ms;
+
+  /* The aside widening or narrowing. Longer than a section, because it is a
+     bigger movement across more of the screen. */
+  --panel-ms: 300ms;
 }
