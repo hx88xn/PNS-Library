@@ -193,6 +193,71 @@
   animation: loft 900ms var(--ease) 1.55s both;
 }
 
+/* ── The ship under way ─────────────────────────────────────────────────
+ *
+ * Everything below starts once the loft has finished drawing, so the plan is
+ * laid down first and only then comes alive. Slow on purpose: this sits behind
+ * a login form, and anything quick enough to read as animation would compete
+ * with the field the eye is meant to be on.
+ */
+
+.hl-wave {
+  stroke: var(--sonar);
+  stroke-width: 1;
+  fill: none;
+}
+
+/* Each wave shifts by exactly one of its own wavelengths, which is why the
+ * loop does not jump: one wavelength along, the water is the same water. */
+.hull-lines--hero .hl-wave--a {
+  opacity: 0.34;
+  animation: fade 1s ease 1.9s both, stream-a 9s linear 1.9s infinite;
+}
+
+.hull-lines--hero .hl-wave--b {
+  opacity: 0.2;
+  animation: fade 1s ease 2.1s both, stream-b 14s linear 2.1s infinite;
+}
+
+@keyframes stream-a {
+  to {
+    transform: translateX(-124px);
+  }
+}
+
+@keyframes stream-b {
+  to {
+    transform: translateX(-186px);
+  }
+}
+
+/* Heave and roll. The origin is the centreline at the waterline — a hull rolls
+ * about roughly there, and rotating about the middle of the bounding box
+ * instead makes it look like a drawing being tilted. */
+.hull-lines--hero .hl-hull {
+  transform-box: view-box;
+  transform-origin: 310px 174.7px;
+  animation: seaway 13s ease-in-out 2.4s infinite;
+}
+
+/* Asymmetric on purpose: an even side-to-side rock reads as a metronome.
+ * A long roll one way and a shorter recovery the other reads as water. */
+@keyframes seaway {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  22% {
+    transform: translateY(-1.7px) rotate(0.5deg);
+  }
+  46% {
+    transform: translateY(0.9px) rotate(-0.18deg);
+  }
+  70% {
+    transform: translateY(-1.1px) rotate(-0.44deg);
+  }
+}
+
 @keyframes loft {
   to {
     stroke-dashoffset: 0;
@@ -216,6 +281,14 @@
   .hull-lines--hero .hl-section,
   .hull-lines--hero .hl-deck {
     stroke-dashoffset: 0;
+  }
+
+  /* The sea is the part of this that never stops, so it is the part that most
+     needs to. The water stays drawn — just still. */
+  .hull-lines--hero .hl-hull,
+  .hull-lines--hero .hl-wave--a,
+  .hull-lines--hero .hl-wave--b {
+    animation: none;
   }
 }
 
