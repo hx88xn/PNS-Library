@@ -7,6 +7,7 @@ the two thin wrappers over it change.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Any, AsyncIterator, Callable
 
@@ -59,14 +60,37 @@ class OllamaClient:
 
     # ── residency ────────────────────────────────────────────────────────
 
-    async def unload(self, model: str) -> None:
-        """Evict a model from VRAM. keep_alive 0 is Ollama's word for now."""
+    async def unload(self, model: str, timeout: float = 30.0) -> bool:
+        """Evict a model and wait until the memory is actually released.
+
+        keep_alive 0 is Ollama's word for "now", but the request returns when
+        the eviction is *accepted*, not when it is done. Returning at that point
+        let the caller start the next load while the outgoing model was still
+        resident — both in memory at once, which on a memory-tight box is the
+        one condition a load cannot survive.
+
+        So this polls /api/ps until the model is gone. Returns whether it
+        actually went: a caller about to load something large needs to know,
+        and a false here is far more useful than an exception, since there is
+        nothing sensible to do about it other than proceed and hope.
+        """
+        qualified = model if ":" in model else f"{model}:latest"
+
         try:
             await self._client.post(
                 "/api/generate", json={"model": model, "keep_alive": 0}
             )
         except httpx.HTTPError:
-            pass  # already gone, or never loaded; either way it is not resident
+            pass  # already gone, or never loaded — the poll below settles it
+
+        deadline = asyncio.get_running_loop().time() + timeout
+        while True:
+            resident = {m if ":" in m else f"{m}:latest" for m in await self.loaded_models()}
+            if qualified not in resident:
+                return True
+            if asyncio.get_running_loop().time() >= deadline:
+                return False
+            await asyncio.sleep(0.4)
 
     async def load(self, model: str) -> None:
         """Bring a model into VRAM and pin it.
