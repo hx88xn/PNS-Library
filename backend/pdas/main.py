@@ -37,6 +37,19 @@ app.add_middleware(
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    # Without this the PDF viewer downloads whole books to show page one.
+    #
+    # Cross-origin JavaScript may only read a short safelist of response
+    # headers; everything else is invisible unless named here. Accept-Ranges
+    # and Content-Range are not on that safelist, so pdf.js — which decides
+    # whether to fetch by range purely by looking for Accept-Ranges on its
+    # first response — saw nothing, concluded the server had no range support,
+    # and fell back to fetching all 35 MB. The server was answering 206
+    # correctly the whole time; the answer was simply unreadable.
+    #
+    # Only bites when the page and the API are on different origins, which is
+    # exactly the deployed arrangement (pn.* against pn-be.*).
+    expose_headers=["Accept-Ranges", "Content-Range", "Content-Length"],
 )
 
 app.include_router(health.router, prefix="/api", tags=["health"])

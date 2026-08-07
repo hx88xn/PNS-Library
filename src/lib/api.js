@@ -126,32 +126,18 @@ export function documents() {
 }
 
 /**
- * The original file, as an ArrayBuffer.
+ * Where a document's bytes live, and what it takes to ask for them.
  *
- * Fetched rather than pointed at: the corpus is RESTRICTED and every endpoint
- * needs the bearer token, which an <iframe src> or a pdf.js URL load cannot
- * carry. The viewer is handed the bytes instead.
+ * For the viewer, which fetches the file itself rather than being handed it —
+ * see openDocument in lib/pdf.js. Everything else here returns data; this
+ * returns the means to go and get it, because pdf.js will only request the
+ * ranges it actually needs if it owns the request.
  */
-export async function documentFile(id, signal) {
-  let response
-  try {
-    response = await fetch(`${serverUrl}/api/documents/${id}/file`, {
-      signal,
-      headers: token ? { Authorization: `Bearer ${token}` } : {}
-    })
-  } catch {
-    throw new ApiError(`Cannot reach the server at ${serverUrl}.`, 0)
+export function documentFileSource(id) {
+  return {
+    url: `${serverUrl}/api/documents/${id}/file`,
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
   }
-
-  if (!response.ok) {
-    const detail = await response
-      .json()
-      .then((b) => b.detail)
-      .catch(() => null)
-    throw new ApiError(detail || `Could not load the document (${response.status}).`, response.status)
-  }
-
-  return response.arrayBuffer()
 }
 
 export function documentText(id, signal) {
