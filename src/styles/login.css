@@ -210,13 +210,13 @@
 /* Each wave shifts by exactly one of its own wavelengths, which is why the
  * loop does not jump: one wavelength along, the water is the same water. */
 .hull-lines--hero .hl-wave--a {
-  opacity: 0.34;
-  animation: fade 1s ease 1.9s both, stream-a 9s linear 1.9s infinite;
+  opacity: 0.5;
+  animation: fade 1s ease 1.9s both, stream-a 7s linear 1.9s infinite;
 }
 
 .hull-lines--hero .hl-wave--b {
-  opacity: 0.2;
-  animation: fade 1s ease 2.1s both, stream-b 14s linear 2.1s infinite;
+  opacity: 0.32;
+  animation: fade 1s ease 2.1s both, stream-b 11s linear 2.1s infinite;
 }
 
 @keyframes stream-a {
@@ -237,24 +237,31 @@
 .hull-lines--hero .hl-hull {
   transform-box: view-box;
   transform-origin: 310px 174.7px;
-  animation: seaway 13s ease-in-out 2.4s infinite;
+  animation: seaway 9s ease-in-out 2.4s infinite;
 }
 
 /* Asymmetric on purpose: an even side-to-side rock reads as a metronome.
- * A long roll one way and a shorter recovery the other reads as water. */
+ * A long roll one way and a shorter recovery the other reads as water.
+ *
+ * These numbers started roughly a third of their current size, out of a worry
+ * about competing with the login form beside it. At that amplitude the deck
+ * edge travelled about a pixel and a half over thirteen seconds, which is to
+ * say it did not read as motion at all — the drawing simply looked static.
+ * A roll has to be seen to be worth having.
+ */
 @keyframes seaway {
   0%,
   100% {
     transform: translateY(0) rotate(0deg);
   }
   22% {
-    transform: translateY(-1.7px) rotate(0.5deg);
+    transform: translateY(-4.5px) rotate(1.35deg);
   }
   46% {
-    transform: translateY(0.9px) rotate(-0.18deg);
+    transform: translateY(2.4px) rotate(-0.5deg);
   }
   70% {
-    transform: translateY(-1.1px) rotate(-0.44deg);
+    transform: translateY(-2.8px) rotate(-1.15deg);
   }
 }
 
