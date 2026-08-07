@@ -62,6 +62,34 @@ function sheerLine(points) {
     .join(' ')
 }
 
+const DWL = 0.54 // fraction of moulded depth — the design waterline
+const WATER_Y = BASE - D * DWL
+
+/**
+ * A sine, sampled as a polyline, for the water surface.
+ *
+ * Drawn one wavelength wider than it needs to be at each end so that
+ * translating it by exactly one wavelength lands on an identical picture —
+ * that is what makes the loop seamless rather than jumping at the repeat.
+ */
+function wave(amplitude, wavelength, offsetY = 0) {
+  const from = CL - MAX_B - 22 - wavelength
+  const to = CL + MAX_B + 22 + wavelength
+  const points = []
+
+  for (let x = from; x <= to; x += 6) {
+    const y = WATER_Y + offsetY + amplitude * Math.sin((2 * Math.PI * x) / wavelength)
+    points.push(`${x.toFixed(1)} ${y.toFixed(2)}`)
+  }
+
+  return `M ${points.join(' L ')}`
+}
+
+// Two, at different wavelengths and speeds. One alone reads as a drawn squiggle;
+// two sliding past each other at different rates read as moving water.
+const WAVE_A = { d: wave(2.4, 124), shift: 124 }
+const WAVE_B = { d: wave(1.5, 186, 3.5), shift: 186 }
+
 export default function HullLines({ variant = 'hero', className = '' }) {
   const { sections, sheerFwd, sheerAft } = useMemo(() => {
     const all = Array.from({ length: STATIONS }, (_, i) => geometry(i))
@@ -74,6 +102,10 @@ export default function HullLines({ variant = 'hero', className = '' }) {
   const animated = variant === 'hero'
   const x1 = CL - MAX_B - 22
   const x2 = CL + MAX_B + 22
+  // Per variant rather than per instance: two hero plans on one page would
+  // share a clip path, which is harmless, and an id that changed between
+  // renders would not be.
+  const clipId = `hl-water-${variant}`
 
   return (
     <svg
@@ -83,6 +115,12 @@ export default function HullLines({ variant = 'hero', className = '' }) {
       aria-hidden="true"
       preserveAspectRatio="xMidYMid meet"
     >
+      <defs>
+        <clipPath id={clipId}>
+          <rect x={x1} y={0} width={x2 - x1} height={H} />
+        </clipPath>
+      </defs>
+
       {/* Waterlines and baseline — the horizontal grid the sections are read against */}
       <g className="hl-grid">
         {waterlines.map((f) => (
@@ -92,34 +130,50 @@ export default function HullLines({ variant = 'hero', className = '' }) {
       </g>
 
       {/* Design waterline — the one measurement everything else answers to */}
-      <line className="hl-dwl" x1={x1} x2={x2} y1={BASE - D * 0.54} y2={BASE - D * 0.54} />
+      <line className="hl-dwl" x1={x1} x2={x2} y1={WATER_Y} y2={WATER_Y} />
+
+      {/* The sea, running past. Clipped to the drawing's own width so it reads
+          as part of the sheet rather than something loose behind it, and drawn
+          before the sections so the hull sits in the water, not on it. */}
+      {animated && (
+        <g className="hl-water" clipPath={`url(#${clipId})`}>
+          <path className="hl-wave hl-wave--a" d={WAVE_A.d} />
+          <path className="hl-wave hl-wave--b" d={WAVE_B.d} />
+        </g>
+      )}
 
       <line className="hl-centreline" x1={CL} x2={CL} y1={BASE - D - 40} y2={BASE + 18} />
 
-      <g className="hl-sections">
-        {sections.map(({ d, i }) => (
-          <path
-            key={i}
-            d={d}
-            className="hl-section"
-            // Normalises every dash computation to 1, so the draw-on animation
-            // is exact whatever the path's real length. See hl-section in
-            // login.css for why a fixed dash length could not work.
-            pathLength="1"
-            style={animated ? { animationDelay: `${140 + i * 58}ms` } : undefined}
-          />
-        ))}
-      </g>
+      {/* Everything belonging to the ship moves together, so it heaves and
+          rolls as one body. The grid, the waterline and the centreline stay
+          put — they are the datum the drawing is read against, and a datum
+          that moved with the hull would show no motion at all. */}
+      <g className="hl-hull">
+        <g className="hl-sections">
+          {sections.map(({ d, i }) => (
+            <path
+              key={i}
+              d={d}
+              className="hl-section"
+              // Normalises every dash computation to 1, so the draw-on animation
+              // is exact whatever the path's real length. See hl-section in
+              // login.css for why a fixed dash length could not work.
+              pathLength="1"
+              style={animated ? { animationDelay: `${140 + i * 58}ms` } : undefined}
+            />
+          ))}
+        </g>
 
-      {/* Sheer line, each side */}
-      <path className="hl-deck" d={sheerFwd} pathLength="1" />
-      <path className="hl-deck" d={sheerAft} pathLength="1" />
+        {/* Sheer line, each side */}
+        <path className="hl-deck" d={sheerFwd} pathLength="1" />
+        <path className="hl-deck" d={sheerAft} pathLength="1" />
 
-      {/* Station ticks on the baseline */}
-      <g className="hl-ticks">
-        {sections.map(({ i, b, s }) => (
-          <line key={i} x1={CL + s * b} x2={CL + s * b} y1={BASE} y2={BASE + 8} />
-        ))}
+        {/* Station ticks on the baseline */}
+        <g className="hl-ticks">
+          {sections.map(({ i, b, s }) => (
+            <line key={i} x1={CL + s * b} x2={CL + s * b} y1={BASE} y2={BASE + 8} />
+          ))}
+        </g>
       </g>
     </svg>
   )
