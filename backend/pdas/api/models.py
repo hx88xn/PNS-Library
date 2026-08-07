@@ -107,7 +107,11 @@ async def select(
             )
 
         previous = settings.llm_model
-        if wanted != previous:
+        # Qualified on both sides: the picker sends what Ollama reports, which
+        # always carries a tag, while PDAS_LLM_MODEL may be configured bare.
+        # Compared raw, 'qwen3.5' and 'qwen3.5:latest' look like a switch, and
+        # the model already resident gets evicted and loaded again for nothing.
+        if _qualify(wanted) != _qualify(previous):
             # Evict BEFORE loading, not after. On an 8 GB card the two models
             # would otherwise be resident together for the length of the load,
             # which is exactly when it fails.
@@ -116,6 +120,14 @@ async def select(
         try:
             await app_state.ollama.load(wanted)
         except OllamaError as exc:
+            # A load that reports failure has usually still committed memory:
+            # Ollama errored or timed out partway through and left the weights
+            # resident. Restoring the previous model on top of that is how the
+            # box ends up holding BOTH — the precise condition the eviction
+            # above exists to prevent, arrived at through the failure path.
+            # So take the failed model out before putting the old one back.
+            await app_state.ollama.unload(wanted)
+
             # Put the old one back rather than leaving the box with nothing
             # loaded and a setting pointing at a model that would not start.
             await app_state.ollama.load(previous)
