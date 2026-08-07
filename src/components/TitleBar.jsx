@@ -3,7 +3,12 @@ import Mark from './Mark.jsx'
 import ModelPicker from './ModelPicker.jsx'
 import { IconPanel, IconSignOut, IconMinimize, IconMaximize, IconClose } from './Icons.jsx'
 
-const isMac = typeof window !== 'undefined' && window.pdas?.platform === 'darwin'
+// window.pdas is injected by the Electron preload and is absent in a browser.
+// The minimise/maximise/close controls are the frame of a desktop window: served
+// as a web page they have nothing to act on and render as three dead buttons
+// beside the browser's own.
+const isElectron = typeof window !== 'undefined' && Boolean(window.pdas)
+const isMac = isElectron && window.pdas?.platform === 'darwin'
 
 export default function TitleBar({
   user,
@@ -43,7 +48,7 @@ export default function TitleBar({
           <IconSignOut />
         </button>
 
-        {!isMac && (
+        {isElectron && !isMac && (
           <div className="window-controls">
             <button
               className="icon-btn"
