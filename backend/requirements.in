@@ -18,6 +18,12 @@ uvicorn>=0.32
 # throughput gain this workload will never notice, a reload feature only used
 # in development, and a WebSocket transport we do not use (chat streams over
 # SSE). They also break cross-platform `pip download`.
+python-multipart>=0.0.9
+# Not optional, despite being an extra of fastapi's rather than a dependency.
+# POST /api/ingest takes `list[UploadFile]`, and FastAPI raises on that at
+# import time when multipart is absent — so a clean install does not fail at
+# the first upload, it fails to start at all. Easy to miss from a development
+# venv that acquired it years ago through something else.
 python-dotenv>=1.0        # pydantic-settings reads .env through this
 pydantic>=2.9
 pydantic-settings>=2.6
