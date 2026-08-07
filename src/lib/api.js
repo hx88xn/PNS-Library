@@ -24,12 +24,87 @@ const DEFAULT_SERVER = (import.meta.env.VITE_SERVER_URL ?? 'http://127.0.0.1:800
 let token = null
 let serverUrl = DEFAULT_SERVER
 
-export function setToken(value) {
+/**
+ * Where the session is kept between page loads.
+ *
+ * sessionStorage, not localStorage, and the distinction is the whole point:
+ * this survives a reload — which is all anyone wanted — but dies with the tab.
+ * A terminal left signed in overnight was the reason the token used to live in
+ * a variable and nothing else; localStorage would bring that back, while
+ * sessionStorage keeps the property and still fixes F5.
+ *
+ * Scoped per origin, so a laptop pointed at two different servers does not
+ * hand one server's token to the other.
+ */
+const SESSION_KEY = 'pdas.session'
+
+let onUnauthorized = null
+
+/** Called when the server rejects our token, so the app can return to Login. */
+export function setUnauthorizedHandler(fn) {
+  onUnauthorized = fn
+}
+
+/** Seconds remaining on a JWT, read from its own `exp`. 0 if unreadable. */
+function secondsLeft(value) {
+  try {
+    const [, payload] = value.split('.')
+    const { exp } = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))
+    return typeof exp === 'number' ? exp - Math.floor(Date.now() / 1000) : 0
+  } catch {
+    return 0
+  }
+}
+
+export function setToken(value, session) {
   token = value
+  try {
+    // The user is stored alongside the token so a reload can render the
+    // workspace immediately. Nothing here is secret that the token does not
+    // already carry, and the token is the thing the server actually checks.
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ token: value, user: session }))
+  } catch {
+    // Private browsing, or storage disabled. The session still works for this
+    // page — it simply will not survive a reload, which is where we started.
+  }
 }
 
 export function clearToken() {
   token = null
+  try {
+    sessionStorage.removeItem(SESSION_KEY)
+  } catch {
+    /* nothing to clear */
+  }
+}
+
+/**
+ * Restore a session left by a previous page load, if it has time left on it.
+ *
+ * Returns the stored user, or null. The expiry is read from the token rather
+ * than trusted from a timestamp we wrote ourselves: the server issued it and
+ * the server is what will enforce it, so anything else is a second opinion
+ * that can only be wrong.
+ *
+ * A margin, because a token with four seconds left is not worth restoring —
+ * it would land the user in the workspace and throw them out mid-keystroke.
+ */
+export function restoreSession() {
+  let stored
+  try {
+    stored = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null')
+  } catch {
+    return null
+  }
+  if (!stored?.token) return null
+
+  if (secondsLeft(stored.token) < 10) {
+    clearToken()
+    return null
+  }
+
+  token = stored.token
+  return stored.user ?? null
 }
 
 export function getServerUrl() {
@@ -85,10 +160,26 @@ async function request(path, { method = 'GET', body, signal } = {}) {
       .json()
       .then((body) => body.detail)
       .catch(() => null)
+    if (response.status === 401) expired()
     throw new ApiError(detail || `Request failed (${response.status}).`, response.status)
   }
 
   return response.status === 204 ? null : response.json()
+}
+
+/**
+ * The token has lapsed. Drop it and tell the app.
+ *
+ * Routine now rather than exceptional: at a 15 minute lifetime this is what
+ * happens to anyone who reads a long document and then asks a question. Left
+ * unhandled it would surface as "Your session has expired" written into
+ * whichever panel happened to make the next request, with the rest of the
+ * workspace still on screen pretending to work.
+ */
+function expired() {
+  if (!token) return // already handled; one lapse should sign out once
+  clearToken()
+  onUnauthorized?.()
 }
 
 // ── Endpoints ────────────────────────────────────────────────────────────
@@ -185,6 +276,7 @@ export async function uploadDocuments(files) {
       .json()
       .then((b) => b.detail)
       .catch(() => null)
+    if (response.status === 401) expired()
     throw new ApiError(detail || `Upload failed (${response.status}).`, response.status)
   }
   return response.json()
@@ -232,6 +324,7 @@ export async function chatStream(
       .json()
       .then((body) => body.detail)
       .catch(() => null)
+    if (response.status === 401) expired()
     throw new ApiError(detail || `Request failed (${response.status}).`, response.status)
   }
 

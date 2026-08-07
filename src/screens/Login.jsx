@@ -35,12 +35,15 @@ export default function Login({ onAuthenticated }) {
     try {
       api.setServerUrl(server)
       const session = await api.login(serviceNo.trim(), password)
-      api.setToken(session.access_token)
-      onAuthenticated({
+      const who = {
         serviceNo: session.service_no,
         displayName: session.display_name,
         role: session.role
-      })
+      }
+      // Stored with the token, so a reload can render the workspace without
+      // asking the server who this is again.
+      api.setToken(session.access_token, who)
+      onAuthenticated(who)
     } catch (err) {
       setError(err.message)
       setPassword('')
