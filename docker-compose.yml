@@ -70,6 +70,12 @@ services:
       # forge a session token with it, against a RESTRICTED corpus.
       #   printf 'PDAS_JWT_SECRET=%s\n' "$(openssl rand -hex 32)" >> .env
       PDAS_JWT_SECRET: ${PDAS_JWT_SECRET:?set PDAS_JWT_SECRET in .env — openssl rand -hex 32}
+      # A JSON array, because the setting is a list[str]. Only consulted when
+      # the page and the API are on different origins — through the /api proxy
+      # the browser sends no preflight at all. Narrow it to the frontend's
+      # origin once that origin is known; "*" lets any page on the internet
+      # put a login form in front of this API.
+      PDAS_CORS_ORIGINS: ${PDAS_CORS_ORIGINS:-["*"]}
     volumes:
       # The database (password hashes included), the vector index and copies of
       # every ingested document. Back this up; losing it means re-ingesting the
@@ -77,9 +83,10 @@ services:
       - pdas-data:/data
     ports:
       # Published for the Electron desktop client, which talks to the API
-      # directly. The browser client does not use this — it goes through the
-      # frontend's /api proxy on 7069.
-      - "7070:8000"
+      # directly, and for a VITE_SERVER_URL that points straight here. The
+      # browser client does not need it otherwise — it goes through the
+      # frontend's /api proxy.
+      - "${PDAS_BACKEND_PORT:-7070}:8000"
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')\""]
       interval: 30s
@@ -92,14 +99,26 @@ services:
       context: .
       dockerfile: docker/frontend.Dockerfile
       args:
-        # Empty = same origin. nginx proxies /api to the backend, so the page
-        # works over HTTPS and behind any hostname without a rebuild.
-        VITE_SERVER_URL: ""
+        # Where the browser sends API requests. Empty — the default — means
+        # same origin, and nginx proxies /api to the backend.
+        #
+        # Read from PDAS_API_URL rather than VITE_SERVER_URL because Vite also
+        # loads this repository's .env for `npm run dev`: a VITE_-prefixed name
+        # here would silently point local development at the production
+        # backend. The unprefixed name is invisible to Vite outside Docker.
+        #
+        # `-` and not `:-`: empty is a meaningful value, not an absent one, so
+        # an explicit `PDAS_API_URL=` must survive rather than pick up a
+        # fallback.
+        #
+        # Baked into the bundle at build time, so a change needs
+        # `docker compose up -d --build`, not a restart.
+        VITE_SERVER_URL: ${PDAS_API_URL-}
     restart: unless-stopped
     depends_on:
       - backend
     ports:
-      - "7069:80"
+      - "${PDAS_FRONTEND_PORT:-7069}:80"
 
 volumes:
   pdas-data:
