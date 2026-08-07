@@ -51,11 +51,14 @@ export default function Workspace({ user, onSignOut }) {
   // Which screen was open, kept across a reload alongside the session — coming
   // back to Chat after refreshing on Documents is its own small loss of place.
   const [view, setView] = useState(restoreView)
+  // All folded to start. Four sections open at once fills the column before
+  // anyone has asked for anything; the icons and their names are the whole
+  // navigation, and the contents are there when you go looking for them.
   const [openTabs, setOpenTabs] = useState({
-    chat: true,
-    ingest: true,
-    retriever: true,
-    documents: true
+    chat: false,
+    ingest: false,
+    retriever: false,
+    documents: false
   })
   const [threads, setThreads] = useState([
     { id: 1, title: 'New thread', when: 'Now', messages: [] }
