@@ -68,8 +68,7 @@ export default function Documents({ target, onConsumeTarget }) {
 
     try {
       if (doc.format === 'pdf') {
-        const bytes = await api.documentFile(doc.id)
-        const task = openDocument(new Uint8Array(bytes))
+        const task = openDocument(api.documentFileSource(doc.id))
         taskRef.current = task
         const opened = await task.promise
         setPdf(opened)

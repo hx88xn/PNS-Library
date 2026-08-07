@@ -30,19 +30,37 @@ const ASSETS = new URL('pdfjs/', document.baseURI).href
 export { pdfjs }
 
 /**
- * Open a PDF from bytes.
+ * Open a PDF, fetched by pdf.js a range at a time.
  *
  * Returns the **loading task**, not the document promise. The document proxy
  * has no `destroy()` in pdf.js 6 — only the loading task does — and closing a
  * fifteen-hundred-page book properly matters here: each open one holds a
  * worker and its decoded page cache.
  *
- * Takes ownership of the buffer: pdf.js transfers it to the worker, after
- * which the caller's view of it is detached. Callers pass a fresh copy.
+ * Given the URL rather than the bytes, deliberately. The obvious reading of
+ * "the corpus is RESTRICTED so the client must fetch it" is that pdf.js has to
+ * be handed a buffer — true of an <iframe src>, which cannot carry a bearer
+ * token, but not of pdf.js, which sends `httpHeaders` on every request it
+ * makes. Handed a URL it reads the trailer and cross-reference table, then
+ * asks for the pages someone actually looks at. The merged Türk Loydu rules
+ * are 35 MB and 1,588 pages; downloading all of it to show page one is most of
+ * the wait before the first page appears.
+ *
+ * disableAutoFetch is what makes that real. Without it pdf.js streams the
+ * remainder in the background once the document opens, so the whole file still
+ * crosses the wire and the only thing saved is the order it arrives in.
+ *
+ * Falls back by itself: if anything between here and the server refuses a
+ * Range request, pdf.js fetches the file whole — which is exactly the old
+ * behaviour, not a failure.
  */
-export function openDocument(data) {
+export function openDocument({ url, headers }) {
   return pdfjs.getDocument({
-    data,
+    url,
+    httpHeaders: headers,
+    disableAutoFetch: true,
+    disableStream: false,
+    rangeChunkSize: 262144,
     standardFontDataUrl: `${ASSETS}standard_fonts/`,
     cMapUrl: `${ASSETS}cmaps/`,
     cMapPacked: true,
