@@ -86,8 +86,19 @@ class Settings(BaseSettings):
 
     # ── Auth ─────────────────────────────────────────────────────────────
     jwt_secret: str = "change-me-before-deployment"
-    jwt_ttl_minutes: int = 720
-    """A design session runs all day; 12 hours avoids re-auth mid-review."""
+    jwt_ttl_minutes: int = 15
+    """Short on purpose, because the token now outlives the page.
+
+    It used to be 12 hours, on the reasoning that a design session runs all day
+    and nobody should re-authenticate mid-review. That held while the token
+    lived in a JavaScript variable and died with the window. It survives a
+    reload now, which means it is written down, and a written-down credential
+    against a RESTRICTED corpus should be worth little for long.
+
+    Raise it if the re-authentication proves too coarse in practice — the
+    client signs out cleanly when it lapses, so the cost is a login, not lost
+    work.
+    """
 
     # ── Server ───────────────────────────────────────────────────────────
     host: str = "127.0.0.1"

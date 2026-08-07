@@ -11,6 +11,19 @@ let nextId = 2
 
 const JOB_POLL_MS = 900
 
+const VIEW_KEY = 'pdas.view'
+
+/** The screen this window was last on. Validated against STAGE rather than
+ *  trusted, so a stale or hand-edited value cannot render a blank stage. */
+function restoreView() {
+  try {
+    const stored = sessionStorage.getItem(VIEW_KEY)
+    return stored && stored in STAGE ? stored : 'chat'
+  } catch {
+    return 'chat'
+  }
+}
+
 const STAGE = {
   chat: {
     title: 'Chat',
@@ -35,7 +48,9 @@ export default function Workspace({ user, onSignOut }) {
   // is here to ask something — the panel is for finding your way back to a
   // thread or a document, which is a second move, not the first one.
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [view, setView] = useState('chat')
+  // Which screen was open, kept across a reload alongside the session — coming
+  // back to Chat after refreshing on Documents is its own small loss of place.
+  const [view, setView] = useState(restoreView)
   const [openTabs, setOpenTabs] = useState({
     chat: true,
     ingest: true,
@@ -53,6 +68,15 @@ export default function Workspace({ user, onSignOut }) {
   // What the Documents tab should open: set by a citation click, cleared once
   // the viewer has honoured it.
   const [target, setTarget] = useState(null)
+
+  // Remember the screen, so a reload comes back where it left off.
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(VIEW_KEY, view)
+    } catch {
+      /* storage unavailable — the view simply will not survive a reload */
+    }
+  }, [view])
 
   const thread = threads.find((t) => t.id === activeThread) ?? threads[0]
 
