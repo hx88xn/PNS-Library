@@ -420,15 +420,31 @@
   opacity: 0;
 }
 
+/* A grid rather than a flex column, purely so the body can be animated.
+ *
+ * The two rows are the head and the body, and the body's track goes 0fr → 1fr.
+ * That is the one way to transition to a height nobody knows in advance: `auto`
+ * is not interpolable, and a max-height guess either clips tall content or
+ * spends most of the duration easing through empty space, which is the stutter
+ * that reads as cheap. A fraction has no such number in it.
+ *
+ * flex-grow rides the same curve. The open tab claims its share of the column
+ * as a flex item, and left untransitioned that claim lands in one frame — the
+ * body would slide open inside a box that had already jumped to full height.
+ */
 .tab {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: auto 0fr;
+  flex-grow: 0;
   min-height: 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  transition: grid-template-rows var(--tab-ms) var(--ease),
+    flex-grow var(--tab-ms) var(--ease);
 }
 
 .tab.is-open {
   flex: 1;
+  grid-template-rows: auto 1fr;
 }
 
 .tab-head {
@@ -469,7 +485,7 @@
 
 .tab-chevron {
   flex: none;
-  transition: transform 200ms var(--ease);
+  transition: transform var(--tab-ms) var(--ease);
   opacity: 0.7;
 }
 
@@ -499,12 +515,22 @@
 
 .tab-body {
   min-height: 0;
-  overflow: hidden auto;
+  /* Clipped, not scrollable, while collapsed: a scrollbar on a zero-height
+     track is what makes these animations flicker at the last frame. */
+  overflow: hidden;
   padding: 0 8px 12px;
+  /* Was display:none, which is why none of this moved before — it is not a
+     transitionable value. visibility is, near enough: the delay keeps the
+     content on screen for the whole collapse and takes it out of the tab order
+     only once the track has closed. Opening reverses it with no delay. */
+  visibility: hidden;
+  transition: visibility 0s linear var(--tab-ms);
 }
 
-.tab:not(.is-open) .tab-body {
-  display: none;
+.tab.is-open .tab-body {
+  overflow: hidden auto;
+  visibility: visible;
+  transition: visibility 0s;
 }
 
 /* Threads */

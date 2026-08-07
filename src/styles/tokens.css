@@ -44,4 +44,9 @@
   --panel-w: 268px;
 
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  /* One duration for a sidebar section opening or closing. Shared so the
+     height, the flex claim and the chevron travel together — a chevron on its
+     own clock is what made the old snap so obvious. */
+  --tab-ms: 260ms;
 }
