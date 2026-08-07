@@ -127,3 +127,27 @@ class SuggestionResponse(BaseModel):
     """Opening questions written from the indexed corpus, each verified to
     retrieve. Empty when nothing is indexed or none survived verification —
     the chat screen shows no openers rather than invented ones."""
+
+
+class ModelInfo(BaseModel):
+    name: str
+    size: int | None = None
+    """Bytes on disk. Not VRAM: a quantised model expands once loaded, and the
+    KV cache is on top of that."""
+    parameter_size: str | None = None
+    quantization: str | None = None
+    loaded: bool = False
+    """Resident in VRAM right now, as opposed to merely present on disk."""
+
+
+class ModelListResponse(BaseModel):
+    current: str
+    embed_model: str
+    available: list[ModelInfo]
+    busy: bool = False
+    """A switch is in progress. The client disables the selector rather than
+    letting a second request queue behind the first."""
+
+
+class ModelSelectRequest(BaseModel):
+    name: str

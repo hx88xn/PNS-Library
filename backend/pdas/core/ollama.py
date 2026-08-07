@@ -34,6 +34,10 @@ class OllamaClient:
     # ── introspection ────────────────────────────────────────────────────
 
     async def list_models(self) -> list[str]:
+        return [m["name"] for m in await self.model_details()]
+
+    async def model_details(self) -> list[dict[str, Any]]:
+        """Every model on the box, with the size and family Ollama reports."""
         try:
             response = await self._client.get("/api/tags")
             response.raise_for_status()
@@ -42,7 +46,53 @@ class OllamaClient:
                 f"Cannot reach Ollama at {self._settings.ollama_host}. "
                 "Is the service running?"
             ) from exc
+        return response.json().get("models", [])
+
+    async def loaded_models(self) -> list[str]:
+        """What is resident in VRAM right now, as opposed to merely present."""
+        try:
+            response = await self._client.get("/api/ps")
+            response.raise_for_status()
+        except httpx.HTTPError:
+            return []  # a missing /api/ps is not worth failing a page over
         return [m["name"] for m in response.json().get("models", [])]
+
+    # ── residency ────────────────────────────────────────────────────────
+
+    async def unload(self, model: str) -> None:
+        """Evict a model from VRAM. keep_alive 0 is Ollama's word for now."""
+        try:
+            await self._client.post(
+                "/api/generate", json={"model": model, "keep_alive": 0}
+            )
+        except httpx.HTTPError:
+            pass  # already gone, or never loaded; either way it is not resident
+
+    async def load(self, model: str) -> None:
+        """Bring a model into VRAM and pin it.
+
+        An empty prompt is Ollama's load-only request: it reads the weights and
+        returns without generating. Given a long timeout because a cold 4B off
+        a slow disk is tens of seconds, and the caller is a user who has just
+        chosen it from a menu and is watching.
+        """
+        try:
+            response = await self._client.post(
+                "/api/generate",
+                json={
+                    "model": model,
+                    "prompt": "",
+                    "keep_alive": self._settings.keep_alive,
+                },
+                timeout=httpx.Timeout(600.0, connect=5.0),
+            )
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            raise OllamaError(
+                f"Could not load {model}: {exc.response.text[:200]}"
+            ) from exc
+        except httpx.HTTPError as exc:
+            raise OllamaError(f"Could not load {model}: {exc}") from exc
 
     async def has_model(self, name: str) -> bool:
         """True if the tag is present. Ollama reports 'qwen3.5:4b' for a model
@@ -58,7 +108,11 @@ class OllamaClient:
         try:
             response = await self._client.post(
                 "/api/embed",
-                json={"model": self._settings.embed_model, "input": texts},
+                json={
+                    "model": self._settings.embed_model,
+                    "input": texts,
+                    "keep_alive": self._settings.keep_alive,
+                },
             )
             response.raise_for_status()
         except httpx.HTTPStatusError as exc:
@@ -100,6 +154,9 @@ class OllamaClient:
             "model": settings.llm_model,
             "messages": messages,
             "stream": True,
+            # Re-pins on every call. Without it Ollama reverts this model to the
+            # five-minute default and the next question pays a cold load.
+            "keep_alive": settings.keep_alive,
             "options": {
                 "temperature": settings.temperature if temperature is None else temperature,
                 "num_ctx": settings.num_ctx,

@@ -114,6 +114,170 @@
   background: #d0574e;
 }
 
+/* ── Model picker ──────────────────────────────────────────────────────── */
+
+.picker {
+  position: relative;
+  /* The titlebar is a drag region; a menu inside it must not be. */
+  -webkit-app-region: no-drag;
+}
+
+.picker .conn {
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background-color 140ms var(--ease), border-color 140ms var(--ease),
+    color 140ms var(--ease);
+}
+
+.picker .conn:hover:not(:disabled),
+.picker .conn.is-open {
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.11);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.picker .conn:disabled {
+  cursor: default;
+}
+
+.conn-label {
+  font-family: var(--font-data);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+/* The dot pulses only while weights are moving, which is the one moment the
+   chip is reporting something transient. */
+.conn-dot.is-working {
+  animation: conn-pulse 1s ease-in-out infinite;
+}
+
+@keyframes conn-pulse {
+  50% {
+    opacity: 0.25;
+    transform: scale(0.75);
+  }
+}
+
+.picker-caret {
+  opacity: 0.5;
+}
+
+.picker-menu {
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  z-index: 60;
+  width: 322px;
+  padding: 10px;
+  color: var(--ink);
+  background: var(--white);
+  border: 1px solid var(--mist-2);
+  border-radius: var(--r-lg);
+  box-shadow: 0 14px 40px rgba(11, 44, 76, 0.24);
+  animation: picker-in 150ms var(--ease) both;
+}
+
+@keyframes picker-in {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+}
+
+.picker-head {
+  margin: 2px 4px 8px;
+  color: var(--ink-3);
+}
+
+.picker-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.picker-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 9px;
+  text-align: left;
+  border-radius: var(--r-md);
+  transition: background-color 120ms var(--ease);
+}
+
+.picker-item:hover:not(:disabled) {
+  background: var(--sheet);
+}
+
+.picker-item.is-current {
+  background: #f4f9fe;
+}
+
+.picker-item:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.picker-item.is-current:disabled {
+  opacity: 1;
+}
+
+.picker-tick {
+  flex: none;
+  width: 10px;
+  font-size: 9px;
+  line-height: 1;
+  color: var(--sonar);
+}
+
+.picker-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.picker-name {
+  display: block;
+  font-family: var(--font-data);
+  font-size: 12.5px;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.picker-meta {
+  display: block;
+  margin-top: 1px;
+  color: var(--ink-3);
+}
+
+.picker-state {
+  flex: none;
+  color: var(--steel);
+}
+
+.picker-note {
+  margin: 8px 5px 2px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.picker-note.is-error {
+  color: #8c2f2b;
+}
+
+.picker-foot {
+  margin: 9px 5px 2px;
+  padding-top: 9px;
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--ink-3);
+  border-top: 1px solid var(--mist);
+}
+
 .icon-btn {
   display: grid;
   place-items: center;

@@ -32,6 +32,17 @@ class Settings(BaseSettings):
     at 512, which would silently drop the tail of most passages. bge-m3 takes
     8192 and degrades gracefully if a non-English document ever appears."""
     ollama_timeout: float = 120.0
+    keep_alive: str = "8h"
+    """How long Ollama holds a model in VRAM after a request.
+
+    Sent on EVERY request, not just at load. Ollama takes the keep_alive of the
+    most recent call for a model, so one chat request without it silently
+    resets a pinned model to the five-minute default -- after which the next
+    question pays a cold load and reads as the application being slow.
+
+    Only one generation model is resident at a time (see /api/models): on an
+    8 GB card, two 4B models plus the embedder does not fit.
+    """
 
     # ── Generation ───────────────────────────────────────────────────────
     num_ctx: int = 16384

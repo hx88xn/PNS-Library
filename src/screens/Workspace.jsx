@@ -148,6 +148,7 @@ export default function Workspace({ user, onSignOut }) {
         sidebarOpen={sidebarOpen}
         onToggleSidebar={() => setSidebarOpen((v) => !v)}
         onSignOut={onSignOut}
+        onModelChanged={refresh}
       />
 
       <div className="workspace-body">

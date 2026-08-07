@@ -7,14 +7,17 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api import auth, chat, chunks, documents, health, ingest, suggestions
+from .api import auth, chat, chunks, documents, health, ingest, models, suggestions
 from .config import get_settings
 from .state import build_state, get_state, set_state
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    set_state(build_state())
+    app_state = build_state()
+    # A model chosen through the UI outlives the process that chose it.
+    models.restore(app_state)
+    set_state(app_state)
     yield
     state = get_state()
     await state.ollama.aclose()
@@ -43,3 +46,4 @@ app.include_router(chat.router, prefix="/api", tags=["chat"])
 app.include_router(documents.router, prefix="/api", tags=["documents"])
 app.include_router(ingest.router, prefix="/api", tags=["ingest"])
 app.include_router(suggestions.router, prefix="/api", tags=["chat"])
+app.include_router(models.router, prefix="/api", tags=["models"])

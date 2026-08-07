@@ -1,17 +1,19 @@
 import { useState } from 'react'
 import Mark from './Mark.jsx'
+import ModelPicker from './ModelPicker.jsx'
 import { IconPanel, IconSignOut, IconMinimize, IconMaximize, IconClose } from './Icons.jsx'
 
 const isMac = typeof window !== 'undefined' && window.pdas?.platform === 'darwin'
 
-export default function TitleBar({ user, health, sidebarOpen, onToggleSidebar, onSignOut }) {
+export default function TitleBar({
+  user,
+  health,
+  sidebarOpen,
+  onToggleSidebar,
+  onSignOut,
+  onModelChanged
+}) {
   const [maximized, setMaximized] = useState(false)
-
-  const connection = !health
-    ? { label: 'Offline', tone: 'is-down', title: 'The server cannot be reached' }
-    : health.status === 'ok'
-      ? { label: health.llm_model, tone: '', title: `${health.chunk_count} chunks indexed` }
-      : { label: 'Degraded', tone: 'is-warn', title: health.problems?.[0] ?? '' }
 
   return (
     <header className={`titlebar ${isMac ? 'is-mac' : ''}`}>
@@ -35,10 +37,7 @@ export default function TitleBar({ user, health, sidebarOpen, onToggleSidebar, o
       </div>
 
       <div className="titlebar-right">
-        <span className={`conn eyebrow ${connection.tone}`} title={connection.title}>
-          <span className="conn-dot" aria-hidden="true" />
-          {connection.label}
-        </span>
+        <ModelPicker health={health} onChanged={onModelChanged} />
         <span className="titlebar-user eyebrow">{user.serviceNo}</span>
         <button className="icon-btn" onClick={onSignOut} title="Sign out" aria-label="Sign out">
           <IconSignOut />

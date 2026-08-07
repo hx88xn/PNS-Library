@@ -111,6 +111,16 @@ export function suggestions(collection = 'all', signal) {
   return request(`/api/suggestions?collection=${encodeURIComponent(collection)}`, { signal })
 }
 
+/** Generation models on the server, and which one is resident. */
+export function models() {
+  return request('/api/models')
+}
+
+/** Evict the current model and load this one. Resolves when it is in VRAM. */
+export function selectModel(name) {
+  return request('/api/models/select', { method: 'POST', body: { name } })
+}
+
 export function documents() {
   return request('/api/documents')
 }
