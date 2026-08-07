@@ -103,6 +103,28 @@
   vector-effect: non-scaling-stroke;
 }
 
+/* Except the two that are drawn on.
+ *
+ * Chrome does not apply pathLength normalisation to stroke-dasharray on an
+ * element with non-scaling-stroke: the dash resolves against device pixels
+ * instead, so how much of each path gets painted depends on the viewport and
+ * the display's pixel ratio. That left every section stopping in mid-air below
+ * a sheer line it never reached. Verified by elimination — the drawing comes
+ * out whole with the dash removed, and equally whole with the dash kept and
+ * only this property dropped.
+ *
+ * The cost is that these strokes now scale with the drawing. At the login
+ * plate that is 1.35 against a 0.9 factor, which is not a visible difference;
+ * a body plan that draws itself completely is.
+ */
+/* Scoped through .hull-lines deliberately: the rule above is `.hull-lines path`
+ * at (0,1,1), which outranks a bare `.hl-section` at (0,1,0) and would leave
+ * this doing nothing at all. */
+.hull-lines .hl-section,
+.hull-lines .hl-deck {
+  vector-effect: none;
+}
+
 .hl-grid line {
   stroke: rgba(255, 255, 255, 0.13);
   stroke-width: 1;
