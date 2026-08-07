@@ -65,6 +65,12 @@ services:
       PDAS_LLM_MODEL: ${PDAS_LLM_MODEL:-qwen3.5:4b}
       PDAS_EMBED_MODEL: ${PDAS_EMBED_MODEL:-bge-m3}
       PDAS_DATA_DIR: /data
+      # Only a .env key listed here reaches the container — compose does not
+      # forward the file wholesale. This one is here because it is the first
+      # thing to give way without a GPU: ingest embeds in batches of 32 chunks
+      # (core/ingest.py), one request each, and on CPU a batch can outrun the
+      # 120s default and fail the job partway through.
+      PDAS_OLLAMA_TIMEOUT: ${PDAS_OLLAMA_TIMEOUT:-120}
       # No default on purpose. The shipped fallback is the literal string
       # "change-me-before-deployment"; anyone who has read this repository can
       # forge a session token with it, against a RESTRICTED corpus.
