@@ -31,7 +31,10 @@ const STAGE = {
 }
 
 export default function Workspace({ user, onSignOut }) {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  // Closed to start. The rail alone names every section, and a signed-in user
+  // is here to ask something — the panel is for finding your way back to a
+  // thread or a document, which is a second move, not the first one.
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [view, setView] = useState('chat')
   const [openTabs, setOpenTabs] = useState({
     chat: true,
