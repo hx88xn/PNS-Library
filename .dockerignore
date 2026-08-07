@@ -1,0 +1,31 @@
+# Rebuilt inside the image.
+node_modules/
+dist/
+release/
+backend/.venv/
+public/pdfjs/
+__pycache__/
+*.pyc
+*.egg-info/
+
+# Runtime state: the SQLite database with password hashes, the FAISS index and
+# copies of every ingested document. Classified once the real corpus is in it,
+# and it belongs in a volume, never baked into a layer.
+backend/var/
+backend/sample-docs/
+
+# Offline bundle staging — gigabytes of wheels and model blobs.
+offline/
+*.tar.gz
+*.tar.zst
+
+# Local overrides. Compose passes what the containers need explicitly; a
+# stray .env in the image would quietly override it (PDAS_OLLAMA_HOST
+# pointing at 127.0.0.1 is the classic one).
+.env
+
+.git/
+.github/
+.claude/
+.DS_Store
+electron/

@@ -1,0 +1,106 @@
+# PDAS — full stack.
+#
+#   docker compose up -d --build
+#   docker compose exec backend pdas adduser PN-40218 --name "Lt Cdr Ahmed" --role admin
+#
+# Then open http://<server>:7069.
+#
+# On a machine with an NVIDIA GPU, add the override so Ollama can see it —
+# without it the model runs on CPU and an answer takes minutes, not seconds:
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+
+name: pdas
+
+services:
+  # The models. Owns the GPU; nothing else in this stack touches it.
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollama-models:/root/.ollama
+    environment:
+      # Matches deploy/ollama.service. The application also sends keep_alive on
+      # every request, so this is a floor rather than the operative value.
+      OLLAMA_KEEP_ALIVE: 24h
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    # Deliberately not published. Only the backend needs it, and an open
+    # Ollama port is an unauthenticated endpoint that will run any prompt.
+    expose:
+      - "11434"
+
+  # One-shot: pull the two models into the volume above, then exit.
+  #
+  # The backend does NOT wait on this. It starts fine without the models and
+  # /api/health names whichever one is missing, which is the behaviour that
+  # matters on a box with no route to ollama.com — there, this container fails,
+  # says so, and the rest of the stack still comes up.
+  ollama-pull:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      ollama pull ${PDAS_LLM_MODEL:-qwen3.5:4b} &&
+      ollama pull ${PDAS_EMBED_MODEL:-bge-m3}
+    restart: "no"
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    restart: unless-stopped
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      PDAS_OLLAMA_HOST: http://ollama:11434
+      PDAS_LLM_MODEL: ${PDAS_LLM_MODEL:-qwen3.5:4b}
+      PDAS_EMBED_MODEL: ${PDAS_EMBED_MODEL:-bge-m3}
+      PDAS_DATA_DIR: /data
+      # No default on purpose. The shipped fallback is the literal string
+      # "change-me-before-deployment"; anyone who has read this repository can
+      # forge a session token with it, against a RESTRICTED corpus.
+      #   printf 'PDAS_JWT_SECRET=%s\n' "$(openssl rand -hex 32)" >> .env
+      PDAS_JWT_SECRET: ${PDAS_JWT_SECRET:?set PDAS_JWT_SECRET in .env — openssl rand -hex 32}
+    volumes:
+      # The database (password hashes included), the vector index and copies of
+      # every ingested document. Back this up; losing it means re-ingesting the
+      # entire corpus.
+      - pdas-data:/data
+    ports:
+      # Published for the Electron desktop client, which talks to the API
+      # directly. The browser client does not use this — it goes through the
+      # frontend's /api proxy on 7069.
+      - "7070:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+      args:
+        # Empty = same origin. nginx proxies /api to the backend, so the page
+        # works over HTTPS and behind any hostname without a rebuild.
+        VITE_SERVER_URL: ""
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "7069:80"
+
+volumes:
+  pdas-data:
+  ollama-models:

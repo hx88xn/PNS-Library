@@ -123,8 +123,10 @@ export default function Login({ onAuthenticated }) {
             </label>
 
             <div className="login-row">
-              <span className="server-line eyebrow" title={server}>
-                Server {server.replace(/^https?:\/\//, '')}
+              {/* Empty means same-origin — a proxied deployment. Naming the
+                  page's own host reads better there than a blank field. */}
+              <span className="server-line eyebrow" title={server || window.location.origin}>
+                Server {(server || window.location.host).replace(/^https?:\/\//, '')}
               </span>
               <button
                 type="button"

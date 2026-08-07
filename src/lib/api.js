@@ -5,7 +5,21 @@
  * terminal a session should not outlive the window.
  */
 
-const DEFAULT_SERVER = 'http://127.0.0.1:8000'
+/**
+ * Where the backend lives, baked in at build time.
+ *
+ * The Docker frontend image builds with VITE_SERVER_URL empty, which makes
+ * every request relative and lets nginx proxy /api to the backend on the same
+ * origin. That is not a tidiness preference: a cross-origin backend means the
+ * page cannot be served over HTTPS without the backend also holding a
+ * certificate, since the browser blocks an https: page calling http:.
+ *
+ * Unset — the Electron build and `npm run dev` — it stays the local server.
+ */
+const DEFAULT_SERVER = (import.meta.env.VITE_SERVER_URL ?? 'http://127.0.0.1:8000').replace(
+  /\/+$/,
+  ''
+)
 
 let token = null
 let serverUrl = DEFAULT_SERVER
