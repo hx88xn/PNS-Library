@@ -363,12 +363,42 @@
 }
 
 /* On the sign-in screen there is no title bar to sit in, so it floats at the
-   corner above the drag strip. */
+   corner above the drag strip.
+ *
+ * That corner is the sign-in panel, which is white — and everything above was
+ * drawn for the dark title bar, so on Windows the buttons rendered in near-white
+ * on white and were invisible. Not dimmed: gone. The whole cluster inverts here.
+ */
 .window-controls--login {
   position: absolute;
   top: 8px;
   right: 10px;
   z-index: 10;
+}
+
+.window-controls--login .win-btn {
+  color: var(--ink-3);
+}
+
+.window-controls--login:hover {
+  background: rgba(11, 33, 56, 0.04);
+  border-color: rgba(11, 33, 56, 0.1);
+  box-shadow: inset 0 1px 0 rgba(11, 33, 56, 0.04);
+}
+
+.window-controls--login:hover .win-btn {
+  color: var(--ink-2);
+}
+
+.window-controls--login .win-btn:hover {
+  color: var(--ink);
+  background: rgba(11, 33, 56, 0.08);
+}
+
+/* Close keeps its red on both surfaces — the icon is white on that fill either
+   way, so only the resting state needed inverting. */
+.window-controls--login .win-btn--close:hover {
+  color: #fff;
 }
 
 /* ── Body ──────────────────────────────────────────────────────────────── */
