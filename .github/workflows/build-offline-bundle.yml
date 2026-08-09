@@ -173,7 +173,11 @@ jobs:
 
           # Written outside the tree, then moved in, so the manifest does not
           # try to checksum itself.
-          ( cd stage && find . -type f | sort | xargs sha256sum ) > SHA256SUMS
+          #
+          # Null-delimited throughout: electron-builder names the installer
+          # "PDAS Setup 1.0.0.exe", and a plain find | xargs splits that into
+          # three filenames that do not exist.
+          ( cd stage && find . -type f -print0 | sort -z | xargs -0 sha256sum ) > SHA256SUMS
           mv SHA256SUMS stage/
 
       - name: Sanity-check before publishing
