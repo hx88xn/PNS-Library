@@ -1,0 +1,46 @@
+name: Build air-gap tools
+
+on:
+  workflow_dispatch:
+    inputs:
+      driver_branch:
+        description: NVIDIA driver branch installed on the server (for example, 550)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Package Ubuntu 24.04 tools
+    runs-on: ubuntu-24.04
+    container: ubuntu:24.04
+
+    steps:
+      - name: Download packages and dependencies
+        env:
+          DRIVER_BRANCH: ${{ inputs.driver_branch }}
+        run: |
+          set -eu
+
+          apt-get update
+          apt-get install --download-only --no-install-recommends -y \
+            unzip \
+            "nvidia-utils-${DRIVER_BRANCH}"
+
+          mkdir -p "$GITHUB_WORKSPACE/bundle/packages"
+          cp /var/cache/apt/archives/*.deb "$GITHUB_WORKSPACE/bundle/packages/"
+
+          cd "$GITHUB_WORKSPACE/bundle"
+          sha256sum packages/*.deb > SHA256SUMS
+          tar -czf "$GITHUB_WORKSPACE/airgap-tools-ubuntu2404-amd64.tar.gz" \
+            packages SHA256SUMS
+
+      - name: Upload bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: airgap-tools-ubuntu2404-amd64
+          path: airgap-tools-ubuntu2404-amd64.tar.gz
+          if-no-files-found: error
+          retention-days: 7
