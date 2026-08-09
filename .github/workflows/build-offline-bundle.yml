@@ -121,7 +121,12 @@ jobs:
           cp -r backend/pdas backend/evals stage/app/
           cp backend/requirements.in backend/pyproject.toml stage/app/
           cp deploy/install_offline.sh deploy/pdas.service deploy/ollama.service stage/
-          cp README-DEPLOY.md stage/ || true
+          # preflight.sh and the runbook ship too. The runbook tells the
+          # operator to run preflight before installing, and an air-gapped
+          # server has no way to fetch either of them afterwards.
+          cp deploy/preflight.sh stage/
+          chmod +x stage/install_offline.sh stage/preflight.sh
+          cp README-DEPLOY.md RUNBOOK.md stage/ || true
           find stage -name '__pycache__' -type d -prune -exec rm -rf {} + || true
       - uses: actions/upload-artifact@v4
         with:
