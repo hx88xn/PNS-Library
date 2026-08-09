@@ -72,7 +72,7 @@ Worth considering if the Ubuntu VM exists only to host this application.
 | Wheels | Connected Ubuntu, **same release + Python minor as the server** | `offline/wheels/` |
 | Models | Any connected Linux | `offline/ollama/` |
 | Client installer | Any connected machine | `dist/PDAS-Setup-*.exe` |
-| Bundle | Same as wheels | `pdas-offline-<date>.tar.gz` |
+| Bundle | Same as wheels | `pdas-runtime-<date>.tar` + `pdas-app-<date>.tar.gz` |
 
 The wheel machine matters more than any other choice here. Wheel filenames
 encode the OS, architecture, and Python minor version; a mismatch fails on the
@@ -94,7 +94,21 @@ npm install                       # client installer, optional
 npm run dist -- --win
 cp dist/PDAS-Setup-*.exe offline/client/
 
-./deploy/make_bundle.sh           # -> pdas-offline-<date>.tar.gz
+./deploy/make_bundle.sh           # -> two archives, see below
+```
+
+`make_bundle.sh` produces **two** archives, not one:
+
+| Archive | Size | Transfer when |
+|---|---|---|
+| `pdas-runtime-<date>.tar` | ~5 GB | model or dependency versions change |
+| `pdas-app-<date>.tar.gz` | ~1 MB | every code change |
+
+Over removable media that split is the whole point: once the runtime is on the
+box, shipping a fix costs a megabyte rather than five gigabytes.
+
+```bash
+./deploy/make_bundle.sh --app-only    # code changed, dependencies did not
 ```
 
 `fetch_wheels.sh` fails deliberately if pip downloads a source distribution.
@@ -110,12 +124,18 @@ Move the single `.tar.gz` through your approved channel to the Windows jump
 server, then into the VM:
 
 ```bash
-# Inside WSL2
-cp /mnt/c/Users/<you>/Downloads/pdas-offline-*.tar.gz ~/
-tar -xzf pdas-offline-*.tar.gz
-cd offline
-sha256sum -c SHA256SUMS          # do not skip this
+# Inside WSL2 — first install, both archives into the SAME directory
+cp /mnt/c/Users/<you>/Downloads/pdas-*-*.tar* ~/
+mkdir -p ~/pdas-bundle && cd ~/pdas-bundle
+tar -xf  ~/pdas-runtime-*.tar
+tar -xzf ~/pdas-app-*.tar.gz
+sha256sum -c RUNTIME_SHA256SUMS   # do not skip either of these
+sha256sum -c APP_SHA256SUMS
 ```
+
+**Keep that directory.** A later app-only update unpacks on top of it, and the
+installer refuses to run without the `wheels/` and `ollama/` directories the
+runtime archive put there — see *Updating* below.
 
 **Unpack into WSL2's own filesystem, not `/mnt/c/`.** Model files are
 memory-mapped, and mmap across the 9p bridge to the Windows filesystem is
@@ -200,6 +220,65 @@ the proxy silently points at nothing after the next reboot.
 Install `PDAS-Setup-*.exe`, launch, and on the sign-in screen use **Change**
 next to the server line to set `http://<server>:8000`. It is stored per machine
 and persists.
+
+---
+
+## Updating an installed server
+
+Code changes ship as the app archive alone. Unpack it **into the directory the
+first install used** — `install_offline.sh` checks for `app/` *and* `wheels/`
+before it does anything, and an app-only archive carries only the first, so
+unpacking somewhere fresh fails immediately with `Missing .../wheels`.
+
+```bash
+cd ~/pdas-bundle                  # where the runtime archive was unpacked
+tar -xzf ~/pdas-app-<date>.tar.gz
+sha256sum -c APP_SHA256SUMS
+sudo ./install_offline.sh
+sudo systemctl restart pdas
+pdas status
+```
+
+Re-running the installer is safe. It overwrites `app/`, rebuilds the virtualenv
+from the wheels already present, and does not touch `var/` — the database,
+the FAISS index and every stored document survive. It also leaves `pdas.env`
+alone, so the JWT secret is unchanged and nobody is signed out by the upgrade
+itself.
+
+### When a dependency was added
+
+`--app-only` deliberately ships no wheels, on the assumption that dependencies
+did not change. When one *did*, put its wheel into the bundle's `wheels/`
+directory before installing — the installer copies from there into
+`/opt/pdas/wheels`:
+
+```bash
+cp python_multipart-*.whl ~/pdas-bundle/wheels/
+```
+
+Skip it and `pip install --no-index` fails with *no matching distribution
+found*, which reads like a corrupt bundle rather than one absent file.
+
+A pure-Python wheel — `py3-none-any` in the filename — can be fetched on any
+machine, including the one you are reading this on. Anything tagged `cp312` or
+`manylinux` is built for a specific Python and platform and must come from
+`fetch_wheels.sh` run on an image matching the server.
+
+### New settings
+
+`pdas.env` is written **only if absent**, so a setting added since the last
+release will not appear on an upgraded box — it silently keeps the compiled-in
+default. Check `backend/pdas/config.py` against `/opt/pdas/pdas.env` after an
+upgrade and add what matters:
+
+```bash
+echo 'PDAS_JWT_TTL_MINUTES=480' | sudo tee -a /opt/pdas/pdas.env
+```
+
+That one is worth setting deliberately. The default is 15 minutes, chosen for a
+shared terminal now that a session survives a page reload; there is no refresh,
+so on this box — where the network boundary is the air gap — a working day is
+the more sensible figure.
 
 ---
 
