@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import HullLines from '../components/HullLines.jsx'
 import Mark from '../components/Mark.jsx'
+import WindowControls from '../components/WindowControls.jsx'
 import * as api from '../lib/api.js'
 
 export default function Login({ onAuthenticated }) {
@@ -55,6 +56,10 @@ export default function Login({ onAuthenticated }) {
   return (
     <div className="login on-navy">
       <div className="login-drag" />
+      {/* The window has no frame on Windows or Linux, and this screen has no
+          title bar, so without these there is no way to close the application
+          before signing in. */}
+      <WindowControls className="window-controls--login" />
 
       {/* Left: the sheet. The body plan draws itself as the terminal comes up. */}
       <section className="login-plate">

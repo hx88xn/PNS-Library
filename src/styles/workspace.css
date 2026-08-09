@@ -293,17 +293,82 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
-.icon-btn--danger:hover {
-  background: #c0392b;
-  color: var(--white);
-}
 
+/* ── Window controls ───────────────────────────────────────────────────────
+ *
+ * The frame, on the platforms that have none: main.cjs opens the window with
+ * `frame: isMac`, so on Windows and Linux these are the only way to close the
+ * application. Rendered on the sign-in screen as well as the title bar, which
+ * is where their absence was a window that could not be closed at all.
+ *
+ * Quiet until approached. The group draws its own hairline frame on hover, so
+ * the three sit in something deliberate rather than floating at the corner —
+ * and the eye is told the whole cluster is live before it has to pick one.
+ */
 .window-controls {
   display: flex;
   gap: 2px;
   margin-left: 6px;
-  padding-left: 6px;
-  border-left: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 3px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  /* Not draggable, or the buttons would move the window instead of clicking. */
+  -webkit-app-region: no-drag;
+  transition: background-color 200ms var(--ease), border-color 200ms var(--ease),
+    box-shadow 200ms var(--ease);
+}
+
+.window-controls:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.win-btn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 24px;
+  color: rgba(232, 240, 247, 0.5);
+  border-radius: 6px;
+  transition: color 140ms var(--ease), background-color 140ms var(--ease),
+    transform 140ms var(--ease);
+}
+
+.window-controls:hover .win-btn {
+  color: rgba(232, 240, 247, 0.78);
+}
+
+.win-btn:hover {
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.win-btn:active {
+  transform: scale(0.92);
+}
+
+/* Close earns the one saturated colour in the title bar. Red only on its own
+   hover — a red that lit up with the group would read as a warning about the
+   window rather than about the button. */
+.win-btn--close:hover {
+  color: #fff;
+  background: linear-gradient(180deg, #e0483c, #c8362b);
+  box-shadow: 0 1px 6px rgba(200, 54, 43, 0.45);
+}
+
+.win-btn:focus-visible {
+  outline: 2px solid var(--sonar);
+  outline-offset: -2px;
+}
+
+/* On the sign-in screen there is no title bar to sit in, so it floats at the
+   corner above the drag strip. */
+.window-controls--login {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 10;
 }
 
 /* ── Body ──────────────────────────────────────────────────────────────── */
