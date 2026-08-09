@@ -1,14 +1,11 @@
-import { useState } from 'react'
 import Mark from './Mark.jsx'
 import ModelPicker from './ModelPicker.jsx'
-import { IconPanel, IconSignOut, IconMinimize, IconMaximize, IconClose } from './Icons.jsx'
+import WindowControls from './WindowControls.jsx'
+import { IconPanel, IconSignOut } from './Icons.jsx'
 
-// window.pdas is injected by the Electron preload and is absent in a browser.
-// The minimise/maximise/close controls are the frame of a desktop window: served
-// as a web page they have nothing to act on and render as three dead buttons
-// beside the browser's own.
-const isElectron = typeof window !== 'undefined' && Boolean(window.pdas)
-const isMac = isElectron && window.pdas?.platform === 'darwin'
+// macOS keeps its native traffic lights, and the title bar insets to clear
+// them. Every other platform gets a frameless window — see WindowControls.
+const isMac = typeof window !== 'undefined' && window.pdas?.platform === 'darwin'
 
 export default function TitleBar({
   user,
@@ -18,8 +15,6 @@ export default function TitleBar({
   onSignOut,
   onModelChanged
 }) {
-  const [maximized, setMaximized] = useState(false)
-
   return (
     <header className={`titlebar ${isMac ? 'is-mac' : ''}`}>
       <div className="titlebar-left">
@@ -48,31 +43,7 @@ export default function TitleBar({
           <IconSignOut />
         </button>
 
-        {isElectron && !isMac && (
-          <div className="window-controls">
-            <button
-              className="icon-btn"
-              onClick={() => window.pdas?.window.minimize()}
-              aria-label="Minimise"
-            >
-              <IconMinimize />
-            </button>
-            <button
-              className="icon-btn"
-              onClick={async () => setMaximized(await window.pdas?.window.toggleMaximize())}
-              aria-label={maximized ? 'Restore' : 'Maximise'}
-            >
-              <IconMaximize />
-            </button>
-            <button
-              className="icon-btn icon-btn--danger"
-              onClick={() => window.pdas?.window.close()}
-              aria-label="Close"
-            >
-              <IconClose />
-            </button>
-          </div>
-        )}
+        <WindowControls />
       </div>
     </header>
   )
