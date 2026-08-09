@@ -133,3 +133,62 @@ jobs:
           name: pdas-backend-source
           path: stage
           retention-days: 90
+
+  # ── One file to carry ────────────────────────────────────────────────────
+  # The three artifacts above are what CI naturally produces, but assembling
+  # them by hand is fiddly in ways that fail confusingly: GitHub serves every
+  # artifact as a zip, zip does not carry the executable bit, and the wheels
+  # artifact unpacks FLAT — its .whl files land loose rather than inside a
+  # wheels/ directory, so install_offline.sh stops at "Missing .../wheels".
+  #
+  # A tar has none of those problems. It keeps the layout and the permissions,
+  # so the server side is: extract, run.
+  #
+  # Everything except the models, which are ~5 GB from Ollama's registry and
+  # deliberately not built here. A first install still needs offline/ollama
+  # from fetch_models.sh; an update does not, because they are already on the
+  # box and install_offline.sh skips that step when the directory is absent.
+  bundle:
+    name: Server bundle (no models)
+    needs: [wheels, client, backend-source]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dl
+
+      - name: Assemble the layout install_offline.sh expects
+        run: |
+          set -euo pipefail
+          mkdir -p stage/wheels stage/client
+
+          cp -r dl/pdas-backend-source/. stage/
+          # Glob: the wheels artifact is named for the Ubuntu and Python it
+          # was built against, so the directory is not known ahead of time.
+          cp dl/pdas-wheels-*/*.whl stage/wheels/
+          cp dl/pdas-client-windows/*.exe stage/client/ 2>/dev/null || \
+            echo "No Windows installer in this run — client/ left empty."
+
+          chmod +x stage/install_offline.sh stage/preflight.sh
+
+          # Written outside the tree, then moved in, so the manifest does not
+          # try to checksum itself.
+          ( cd stage && find . -type f | sort | xargs sha256sum ) > SHA256SUMS
+          mv SHA256SUMS stage/
+
+      - name: Sanity-check before publishing
+        run: |
+          set -euo pipefail
+          test -d stage/app -a -d stage/wheels
+          grep -q python-multipart stage/app/requirements.in
+          ls stage/wheels/*multipart*.whl >/dev/null
+          echo "wheels: $(ls stage/wheels/*.whl | wc -l)"
+
+      - name: Tar
+        run: tar -czf "pdas-server-${GITHUB_SHA::7}.tar.gz" -C stage .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pdas-server-bundle
+          path: pdas-server-*.tar.gz
+          retention-days: 90

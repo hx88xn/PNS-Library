@@ -82,7 +82,30 @@ same WSL2 Ubuntu image you will deploy to, while it still has network.**
 
 ---
 
-## 1. Build the bundle (connected machine)
+## 1. Build the bundle
+
+### From CI, if you can reach GitHub
+
+The **Build offline bundle** workflow produces `pdas-server-<sha>.tar.gz` —
+backend, wheels, install machinery and the Windows client in one file, ready to
+extract and run. Prefer it: the wheels are built natively on the Ubuntu release
+you select, so there is no `--platform` guesswork and no cp-tag mismatch.
+
+Set the `ubuntu_version` input to match the server — `lsb_release -a` on the VM.
+
+The individual `pdas-wheels-*`, `pdas-client-*` and `pdas-backend-source`
+artifacts are still published, but assembling those by hand is fiddly: GitHub
+serves every artifact as a zip, zip drops the executable bit, and the wheels
+artifact unpacks *flat* rather than into a `wheels/` directory — which stops
+`install_offline.sh` at `Missing .../wheels`. The tarball has none of those
+problems.
+
+**Models are not in CI.** They are ~5 GB from Ollama's registry and expire with
+the artifact. A first install still needs `offline/ollama` from
+`./deploy/fetch_models.sh`, run once on any connected Linux machine. An update
+does not — they are already on the box.
+
+### By hand (connected machine)
 
 ```bash
 git clone <repo> pdas && cd pdas
