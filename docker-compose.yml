@@ -78,6 +78,15 @@ services:
       # (core/ingest.py), one request each, and on CPU a batch can outrun the
       # 120s default and fail the job partway through.
       PDAS_OLLAMA_TIMEOUT: ${PDAS_OLLAMA_TIMEOUT:-120}
+      # How long a session lasts. The default is deliberately short because the
+      # token now survives a page reload, but 15 minutes suits a shared terminal
+      # rather than someone reading a rulebook for an afternoon — and there is
+      # no refresh, so a lapse costs a full sign-in.
+      PDAS_JWT_TTL_MINUTES: ${PDAS_JWT_TTL_MINUTES:-15}
+      # Context window. The second memory lever after the model itself: this is
+      # what the KV cache is sized from, so lowering it is how a larger model
+      # fits on a box that cannot hold it at 16k.
+      PDAS_NUM_CTX: ${PDAS_NUM_CTX:-16384}
       # No default on purpose. The shipped fallback is the literal string
       # "change-me-before-deployment"; anyone who has read this repository can
       # forge a session token with it, against a RESTRICTED corpus.
