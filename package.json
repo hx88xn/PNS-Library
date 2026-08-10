@@ -2,7 +2,7 @@
   "name": "pdas",
   "version": "1.0.0",
   "private": true,
-  "description": "Platform Design Assistance System \u2014 Ship Design Office, Pakistan Navy",
+  "description": "Platform Design Assistance System — Ship Design Office, Pakistan Navy",
   "author": "Ship Design Office",
   "main": "electron/main.cjs",
   "type": "module",
@@ -17,7 +17,9 @@
   "dependencies": {
     "pdfjs-dist": "^6.2.108",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@fontsource/barlow-condensed": "^5.1.0",

@@ -197,6 +197,128 @@
   margin-bottom: 0;
 }
 
+/* ── Markdown inside an answer ────────────────────────────────────────────
+ *
+ * The model writes in markdown and the bubble now renders it. Everything here
+ * is set to the memorandum register the prompt asks for: tight, unornamented,
+ * and quiet enough that a figure stands out rather than the formatting around
+ * it.
+ */
+
+.msg-bubble > :first-child {
+  margin-top: 0;
+}
+
+.msg-bubble > :last-child {
+  margin-bottom: 0;
+}
+
+.msg-bubble ul,
+.msg-bubble ol {
+  margin: 0 0 10px;
+  padding-left: 20px;
+}
+
+.msg-bubble li {
+  margin-bottom: 4px;
+}
+
+.msg-bubble li > ul,
+.msg-bubble li > ol {
+  margin: 4px 0 0;
+}
+
+/* Headings are rare in an answer this short, so they are barely headings —
+   weight and a little air, no size jump that would fragment the bubble. */
+.msg-bubble h1,
+.msg-bubble h2,
+.msg-bubble h3,
+.msg-bubble h4 {
+  margin: 14px 0 6px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.msg-bubble strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* Identifiers, tolerances and standard references. Monospaced so a figure
+   cannot be misread as prose, which is the whole point of quoting it. */
+.msg-bubble code {
+  padding: 1px 5px;
+  font-family: var(--font-data);
+  font-size: 12.5px;
+  background: var(--mist);
+  border-radius: var(--r-sm);
+}
+
+.msg-bubble pre {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  background: var(--sheet);
+  border: 1px solid var(--mist-2);
+  border-radius: var(--r-md);
+}
+
+.msg-bubble pre code {
+  padding: 0;
+  background: none;
+}
+
+.msg-bubble blockquote {
+  margin: 0 0 10px;
+  padding-left: 12px;
+  color: var(--ink-2);
+  border-left: 2px solid var(--mist-2);
+}
+
+.msg-bubble hr {
+  margin: 14px 0;
+  border: 0;
+  border-top: 1px solid var(--mist-2);
+}
+
+/* Scrolls in its own box. A wide table would otherwise stretch the bubble and
+   take the whole thread sideways with it. */
+.md-table-wrap {
+  margin: 0 0 10px;
+  overflow-x: auto;
+}
+
+.msg-bubble table {
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.msg-bubble th,
+.msg-bubble td {
+  padding: 5px 10px;
+  text-align: left;
+  white-space: nowrap;
+  border: 1px solid var(--mist-2);
+}
+
+.msg-bubble th {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--sheet);
+}
+
+/* The question keeps the blue bubble, so its markup inverts to stay legible. */
+.msg--user .msg-bubble code {
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.18);
+}
+
 /* A question is short; let it keep its own shape rather than fill the column */
 .msg--user .msg-body {
   display: flex;

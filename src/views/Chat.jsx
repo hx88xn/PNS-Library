@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { IconSend, IconDoc, IconChevron, IconThink } from '../components/Icons.jsx'
+import Answer from '../components/Answer.jsx'
 import HullLines from '../components/HullLines.jsx'
 import * as api from '../lib/api.js'
 
@@ -146,9 +147,14 @@ export default function Chat({
                     </div>
                   ) : (
                     <div className={`msg-bubble ${m.error ? 'is-error' : ''}`}>
-                      {m.text.split('\n\n').map((para, j) => (
-                        <p key={j}>{para}</p>
-                      ))}
+                      {/* The question is what the user typed — shown verbatim,
+                          because rendering their own words as markup would be
+                          surprising. Only the model writes markdown. */}
+                      {m.role === 'user' ? (
+                        m.text.split('\n\n').map((para, j) => <p key={j}>{para}</p>)
+                      ) : (
+                        <Answer text={m.text} />
+                      )}
                     </div>
                   )}
 
