@@ -32,9 +32,9 @@ export default function TitleBar({
         <span className="titlebar-sub eyebrow">Ship Design Office</span>
       </div>
 
-      <div className="titlebar-center">
+      {/* <div className="titlebar-center">
         <span className="classification-chip eyebrow">Restricted</span>
-      </div>
+      </div> */}
 
       <div className="titlebar-right">
         <ModelPicker health={health} onChanged={onModelChanged} />

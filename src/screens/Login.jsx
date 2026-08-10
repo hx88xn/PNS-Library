@@ -68,7 +68,7 @@ export default function Login({ onAuthenticated }) {
         <header className="login-identity">
           <Mark size={52} />
           <div>
-            <p className="eyebrow login-org">Pakistan Navy · Ship Design Office</p>
+            <p className="eyebrow login-org">Ship Design Office</p>
             <h1 className="login-title">
               Platform Design
               <span>Assistance System</span>
@@ -84,11 +84,11 @@ export default function Login({ onAuthenticated }) {
       {/* Right: the gate. */}
       <section className="login-gate">
         <div className="login-form-wrap">
-          <p className="eyebrow login-gate-eyebrow">Secure terminal</p>
+          {/* <p className="eyebrow login-gate-eyebrow">Secure terminal</p> */}
           <h2 className="login-gate-title">Sign in</h2>
-          <p className="login-gate-sub">
+          {/* <p className="login-gate-sub">
             Access is restricted to authorised design office personnel.
-          </p>
+          </p> */}
 
           <form onSubmit={submit} noValidate>
             <label className="field">
