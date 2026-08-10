@@ -33,7 +33,7 @@ export default function TitleBar({
       </div>
 
       <div className="titlebar-center">
-        <span className="classification-chip eyebrow">Restricted</span>
+        {/* <span className="classification-chip eyebrow">Restricted</span> */}
       </div>
 
       <div className="titlebar-right">
