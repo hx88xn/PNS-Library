@@ -64,6 +64,10 @@ class ChatRequest(BaseModel):
     collection: str = "all"
     history: list[dict[str, str]] = Field(default_factory=list)
     """Prior turns as {role, content}. Trimmed server-side to fit the window."""
+    think: bool | None = None
+    """Let the model reason before answering. None leaves it to the server,
+    which turns it on when the weights are on the GPU and off when they are
+    not — deliberation on CPU is a minute of staring at a spinner."""
 
 
 class Citation(BaseModel):
@@ -113,6 +117,10 @@ class HealthResponse(BaseModel):
     ollama_reachable: bool
     llm_model: str
     llm_present: bool
+    on_gpu: bool = False
+    """Whether the generation model's weights are actually on the GPU. Drives
+    the default for reasoning, and tells an operator that a card which is
+    present is also being used."""
     embed_model: str
     embed_present: bool
     index_size: int

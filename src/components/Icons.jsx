@@ -32,6 +32,14 @@ export const IconChevron = (p) => (
   </svg>
 )
 
+/** Reasoning: a filament, lit. */
+export const IconThink = (p) => (
+  <svg {...base} {...p}>
+    <path d="M9 18h6M10 21h4" />
+    <path d="M12 3a6 6 0 0 0-3.6 10.8c.5.4.8 1 .9 1.6l.1.6h5.2l.1-.6c.1-.6.4-1.2.9-1.6A6 6 0 0 0 12 3Z" />
+  </svg>
+)
+
 export const IconPlus = (p) => (
   <svg {...base} {...p}>
     <path d="M12 5v14M5 12h14" />

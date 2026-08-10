@@ -403,6 +403,41 @@
   color: #9db2c6;
 }
 
+/* Reasoning toggle. Sits beside Send because it changes what Send does — and
+   quiet when off, so the ordinary lookup path is not asking to be considered
+   every time someone types a question. */
+.composer-think {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  align-self: flex-end;
+  height: 36px;
+  padding: 0 11px;
+  color: var(--ink-3);
+  background: transparent;
+  border: 1px solid var(--mist-2);
+  border-radius: var(--r-md);
+  transition: color 140ms var(--ease), background-color 140ms var(--ease),
+    border-color 140ms var(--ease);
+}
+
+.composer-think:hover {
+  color: var(--ink-2);
+  background: var(--sheet);
+}
+
+.composer-think.is-on {
+  color: var(--steel);
+  background: rgba(23, 84, 140, 0.08);
+  border-color: rgba(23, 84, 140, 0.28);
+}
+
+.composer-think.is-on svg {
+  /* The filament lights when it is doing something. */
+  filter: drop-shadow(0 0 4px rgba(53, 198, 224, 0.5));
+}
+
 .composer-send {
   display: grid;
   place-items: center;

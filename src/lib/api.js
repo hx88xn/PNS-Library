@@ -289,7 +289,7 @@ export function currentJob() {
  * are generated; citations arrive once, after the last token.
  */
 export async function chatStream(
-  { message, collection = 'all', history = [] },
+  { message, collection = 'all', history = [], think = null },
   { onToken, onCitations, signal } = {}
 ) {
   let response
@@ -301,7 +301,9 @@ export async function chatStream(
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {})
       },
-      body: JSON.stringify({ message, collection, history })
+      // null leaves the choice to the server, which turns reasoning on when
+      // the model is on the GPU. true and false are the user's own decision.
+      body: JSON.stringify({ message, collection, history, think })
     })
   } catch {
     throw new ApiError(`Cannot reach the server at ${serverUrl}.`, 0)

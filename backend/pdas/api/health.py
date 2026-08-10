@@ -25,6 +25,7 @@ async def health() -> HealthResponse:
     reachable = False
     llm_present = False
     embed_present = False
+    on_gpu = False
 
     try:
         available = set(await state.ollama.list_models())
@@ -34,6 +35,7 @@ async def health() -> HealthResponse:
             return (name if ":" in name else f"{name}:latest") in available
 
         llm_present = present(settings.llm_model)
+        on_gpu = await state.ollama.on_gpu()
         embed_present = present(settings.embed_model)
 
         if not llm_present:
@@ -70,6 +72,7 @@ async def health() -> HealthResponse:
         ollama_reachable=reachable,
         llm_model=settings.llm_model,
         llm_present=llm_present,
+        on_gpu=on_gpu,
         embed_model=settings.embed_model,
         embed_present=embed_present,
         index_size=state.store.size,

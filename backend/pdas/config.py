@@ -60,6 +60,15 @@ class Settings(BaseSettings):
     that replies with nothing at all. Leave headroom for both.
     """
 
+    reasoning_max_tokens: int = 6144
+    """Budget for a turn the model is allowed to think through.
+
+    Deliberation and answer come out of the same allowance, so a reasoning turn
+    that is given the ordinary budget spends it thinking and returns nothing —
+    see max_tokens above, where that failure is recorded. Generous, because the
+    cost of being wrong here is an empty answer rather than a slow one.
+    """
+
     # ── Retrieval ────────────────────────────────────────────────────────
     dense_k: int = 24
     """Candidates from the vector index before fusion."""

@@ -128,7 +128,9 @@ async def _generate(
 
     meta: dict = {}
     try:
-        async for token in app_state.ollama.chat_stream(messages, on_meta=meta.update):
+        async for token in app_state.ollama.chat_stream(
+            messages, think=request.think, on_meta=meta.update
+        ):
             yield _sse("token", {"text": token})
     except OllamaError as exc:
         yield _sse("error", {"detail": str(exc)})

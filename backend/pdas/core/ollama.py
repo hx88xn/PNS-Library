@@ -24,6 +24,8 @@ class OllamaClient:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
         self._disable_thinking = True
+        self._gpu: bool | None = None
+        """Whether the generation model is on the GPU. None until asked."""
         self._client = httpx.AsyncClient(
             base_url=settings.ollama_host.rstrip("/"),
             timeout=httpx.Timeout(settings.ollama_timeout, connect=5.0),
@@ -51,12 +53,57 @@ class OllamaClient:
 
     async def loaded_models(self) -> list[str]:
         """What is resident in VRAM right now, as opposed to merely present."""
+        return [m["name"] for m in await self._resident()]
+
+    async def _resident(self) -> list[dict[str, Any]]:
         try:
             response = await self._client.get("/api/ps")
             response.raise_for_status()
         except httpx.HTTPError:
             return []  # a missing /api/ps is not worth failing a page over
-        return [m["name"] for m in response.json().get("models", [])]
+        return response.json().get("models", [])
+
+    async def on_gpu(self) -> bool:
+        """Whether the generation model is actually running on the GPU.
+
+        Deliberately not "is CUDA installed". Ollama reports `size_vram` beside
+        `size` in /api/ps, which is the difference between a card being present
+        and the weights being on it — and a partial offload, where the runtime
+        is missing or the model does not fit, is precisely the case that looks
+        like a working GPU and performs like a CPU.
+
+        A model split across both is treated as CPU. Reasoning on a partial
+        offload is slower than not reasoning at all.
+
+        Cached: this decides a per-request flag, and an extra HTTP round trip on
+        every question to re-answer a question about the hardware is waste. The
+        cache is dropped whenever a model is loaded or evicted, which is the
+        only thing that can change the answer.
+        """
+        if self._gpu is not None:
+            return self._gpu
+
+        wanted = self._qualify(self._settings.llm_model)
+        self._gpu = False
+        for entry in await self._resident():
+            if self._qualify(entry.get("name", "")) != wanted:
+                continue
+            total = entry.get("size") or 0
+            vram = entry.get("size_vram") or 0
+            # 95%, not 100%: Ollama leaves a little of the KV cache in host
+            # memory even on a full offload, and a model that is 99% on the
+            # card is on the card.
+            self._gpu = bool(total) and vram / total >= 0.95
+            break
+        return self._gpu
+
+    def forget_placement(self) -> None:
+        """Drop the cached GPU answer. Called whenever residency changes."""
+        self._gpu = None
+
+    @staticmethod
+    def _qualify(name: str) -> str:
+        return name if ":" in name else f"{name}:latest"
 
     # ── residency ────────────────────────────────────────────────────────
 
@@ -74,6 +121,7 @@ class OllamaClient:
         and a false here is far more useful than an exception, since there is
         nothing sensible to do about it other than proceed and hope.
         """
+        self.forget_placement()
         qualified = model if ":" in model else f"{model}:latest"
 
         try:
@@ -100,6 +148,7 @@ class OllamaClient:
         a slow disk is tens of seconds, and the caller is a user who has just
         chosen it from a menu and is watching.
         """
+        self.forget_placement()
         try:
             response = await self._client.post(
                 "/api/generate",
@@ -163,6 +212,7 @@ class OllamaClient:
         *,
         temperature: float | None = None,
         max_tokens: int | None = None,
+        think: bool | None = None,
         on_meta: Callable[[dict[str, Any]], None] | None = None,
     ) -> AsyncIterator[str]:
         """Yield answer text as it is produced.
@@ -172,8 +222,14 @@ class OllamaClient:
         yielded. `on_meta` receives {done_reason, content_chars, thinking_chars}
         once the stream ends, which is how the caller can tell "the model had
         nothing to say" apart from "the model spent its whole budget thinking".
+
+        `think` is tri-state. True and False are the user's explicit choice.
+        None means decide from the hardware: deliberation is worth having when
+        the weights are on the GPU and is a minute of staring at a spinner when
+        they are not.
         """
         settings = self._settings
+        reasoning = await self.on_gpu() if think is None else think
         payload: dict[str, Any] = {
             "model": settings.llm_model,
             "messages": messages,
@@ -184,16 +240,26 @@ class OllamaClient:
             "options": {
                 "temperature": settings.temperature if temperature is None else temperature,
                 "num_ctx": settings.num_ctx,
-                "num_predict": settings.max_tokens if max_tokens is None else max_tokens,
+                # Thinking is spent out of the same budget as the answer, so
+                # a reasoning turn needs a bigger one. Left at the default a
+                # hard question deliberates its way to an empty bubble — the
+                # failure the note on Settings.max_tokens records.
+                "num_predict": (
+                    max_tokens
+                    if max_tokens is not None
+                    else settings.reasoning_max_tokens
+                    if reasoning
+                    else settings.max_tokens
+                ),
             },
         }
 
-        # Ask the model not to deliberate. Note this is a request, not a
-        # guarantee: some model/Ollama combinations accept `think: false`
-        # without error and reason anyway. The budget below is what actually
-        # protects us — see num_predict in Settings.
+        # A request, not a guarantee, in both directions: some model/Ollama
+        # combinations accept `think` and ignore it, and a model that does no
+        # reasoning at all will not start because it was asked to. The budget
+        # above is what actually protects against a runaway deliberation.
         if self._disable_thinking:
-            payload["think"] = False
+            payload["think"] = reasoning
 
         try:
             async for chunk in self._stream_chat(payload, on_meta):

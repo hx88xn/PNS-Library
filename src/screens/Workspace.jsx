@@ -225,6 +225,7 @@ export default function Workspace({ user, onSignOut }) {
               key={thread.id}
               thread={thread}
               collection={collection}
+              health={health}
               onSend={appendMessage}
               onPatchLast={patchLastMessage}
               onOpenCitation={openCitation}

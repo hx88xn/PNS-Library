@@ -1,10 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
-import { IconSend, IconDoc, IconChevron } from '../components/Icons.jsx'
+import { IconSend, IconDoc, IconChevron, IconThink } from '../components/Icons.jsx'
 import HullLines from '../components/HullLines.jsx'
 import * as api from '../lib/api.js'
 
-export default function Chat({ thread, collection, onSend, onPatchLast, onOpenCitation }) {
+export default function Chat({
+  thread,
+  collection,
+  health,
+  onSend,
+  onPatchLast,
+  onOpenCitation
+}) {
   const [draft, setDraft] = useState('')
+  // null means "as the server sees fit", which is on when the model is on the
+  // GPU. Clicking commits the user to a choice and stops the default moving
+  // under them if the model is later switched to one that sits on the CPU.
+  const [think, setThink] = useState(null)
+  const thinking = think ?? !!health?.on_gpu
   const [streaming, setStreaming] = useState(false)
   const [openers, setOpeners] = useState(null)
   const scrollRef = useRef(null)
@@ -54,7 +66,7 @@ export default function Chat({ thread, collection, onSend, onPatchLast, onOpenCi
     let answer = ''
     try {
       await api.chatStream(
-        { message: question, collection, history },
+        { message: question, collection, history, think },
         {
           signal: controller.signal,
           onToken: (token) => {
@@ -196,6 +208,21 @@ export default function Chat({ thread, collection, onSend, onPatchLast, onOpenCi
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onKeyDown}
           />
+          <button
+            className={`composer-think ${thinking ? 'is-on' : ''}`}
+            onClick={() => setThink(!thinking)}
+            aria-pressed={thinking}
+            title={
+              thinking
+                ? 'Reasoning on — the model works the question through before answering. Slower.'
+                : health?.on_gpu === false
+                  ? 'Reasoning off. The model is running on the CPU, where thinking is slow.'
+                  : 'Reasoning off — answers come straight from the retrieved passages.'
+            }
+          >
+            <IconThink width={16} height={16} />
+            <span className="eyebrow">Reason</span>
+          </button>
           <button
             className="composer-send"
             onClick={() => send(draft)}
