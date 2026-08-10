@@ -339,10 +339,31 @@ sudo systemctl restart pdas
 sudo -u pdas /opt/pdas/venv/bin/pdas reindex              # only if the embedder changed
 ```
 
-To add a model later, pull it on a connected machine and copy **both**
-`~/.ollama/models/blobs` and `~/.ollama/models/manifests` into
-`/opt/pdas/models`. Copying only `blobs` leaves a server that holds the weights
-and has no idea what they are called.
+To add a model later, build a weights-only bundle on a connected machine:
+
+```bash
+./deploy/fetch_models.sh --llm-only --llm qwen3.5:9b ~/qwen3.5-9b
+```
+
+`--llm-only` skips the embedder, and adding `--runtime /path/to/ollama-linux-amd64.tar.zst`
+reuses the runtime from an earlier build instead of downloading it again —
+together they keep a second LLM down to its own weights instead of ~2.5GB of
+things the server already has.
+
+Carry `~/qwen3.5-9b/models` across and copy **both** `blobs/` and `manifests/`
+into `/opt/pdas/models`. Copying only `blobs` leaves a server that holds the
+weights and has no idea what they are called:
+
+```bash
+sudo cp -r ~/qwen3.5-9b/models/. /opt/pdas/models/
+sudo chown -R pdas:pdas /opt/pdas/models
+sudo -u pdas OLLAMA_MODELS=/opt/pdas/models ollama list   # the new tag should appear
+```
+
+Then point `PDAS_LLM_MODEL` at it in `/opt/pdas/pdas.env` and restart. Note that
+`install_offline.sh` only writes `pdas.env` when it does not already exist, so on
+a server that is already running, re-running the installer will **not** switch
+the model for you.
 
 ### VRAM budget, 8GB card (~6.5GB usable)
 
@@ -358,8 +379,11 @@ Roughly 2GB spare on a 6.5GB budget. Note the on-disk size is 3.4GB and the
 resident size 3.7GB — the KV cache at 16k is already included above, so raising
 `PDAS_NUM_CTX` eats the margin directly.
 
-A 7B fits if the 4B ever proves too weak — **but re-run the refusal eval before
-and after any model change**:
+A 7B fits if the 4B ever proves too weak. **A 9B does not**: `qwen3.5:9b` is
+6.6GB of weights on disk before any KV cache, which overruns the whole 6.5GB
+budget on its own and leaves nothing for `bge-m3`. On an 8GB card it will spill
+into system RAM and generation speed collapses. Size the card first — a 9B wants
+16GB — and **re-run the refusal eval before and after any model change**:
 
 ```bash
 sudo -u pdas /opt/pdas/venv/bin/python /opt/pdas/app/evals/run.py

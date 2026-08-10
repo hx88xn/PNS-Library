@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-# Fetch the Ollama runtime and the two models, ready to carry onto the
-# air-gapped server.
+# Fetch the Ollama runtime and the models, ready to carry onto the air-gapped
+# server. Both models by default; see the flags to narrow it.
 #
 # RUN THIS ON A CONNECTED LINUX MACHINE. Ollama does NOT need to be installed:
 # the script downloads the runtime, extracts it to a temporary directory, and
@@ -9,18 +9,62 @@
 # account is created, and the client doing the pull is by construction the same
 # version the server will run.
 #
-#   ./deploy/fetch_models.sh [output_dir]
+#   ./deploy/fetch_models.sh [options] [output_dir]
+#
+#     --llm TAG       LLM to pull          (default: $PDAS_LLM_MODEL, or qwen3.5:4b)
+#     --embed TAG     embedder to pull     (default: $PDAS_EMBED_MODEL, or bge-m3)
+#     --llm-only      pull the LLM alone, skipping the embedder
+#     --embed-only    pull the embedder alone, skipping the LLM
+#     --runtime PATH  reuse an ollama-linux-amd64.tar.zst already on disk
+#                     instead of downloading one, and leave it out of the bundle
+#
+# Adding a second LLM to a server that is already running is the common case
+# for the narrow flags: the embedder and the runtime are already installed
+# there, so re-fetching them costs ~2.5 GB to carry across an air gap and
+# deliver nothing. This produces a bundle holding just the new weights:
+#
+#   ./deploy/fetch_models.sh --llm-only --llm qwen3.5:9b ~/qwen3.5-9b
+#
+# The result is a partial store, which is fine — blobs are content-addressed
+# and install_offline.sh copies them over the existing store rather than
+# replacing it, so the new model lands beside what is already there.
 #
 # Needs zstd (`apt-get install zstd`) if tar lacks --zstd support.
 
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUT="${1:-$ROOT/offline/ollama}"
 
 LLM_MODEL="${PDAS_LLM_MODEL:-qwen3.5:4b}"
 EMBED_MODEL="${PDAS_EMBED_MODEL:-bge-m3}"
 OLLAMA_VERSION="${OLLAMA_VERSION:-}"   # empty = latest
+
+OUT=""
+WANT_LLM=1
+WANT_EMBED=1
+RUNTIME_SRC=""
+
+while (( $# )); do
+  case "$1" in
+    --llm)        LLM_MODEL="${2:?--llm needs a tag}"; shift 2 ;;
+    --embed)      EMBED_MODEL="${2:?--embed needs a tag}"; shift 2 ;;
+    --llm-only)   WANT_EMBED=0; shift ;;
+    --embed-only) WANT_LLM=0; shift ;;
+    --runtime)    RUNTIME_SRC="${2:?--runtime needs a path}"; shift 2 ;;
+    -h|--help)    sed -n '2,32p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -*)           echo "Unknown option: $1" >&2; exit 2 ;;
+    *)            OUT="$1"; shift ;;
+  esac
+done
+
+OUT="${OUT:-$ROOT/offline/ollama}"
+
+# Order matters: the embedder is small, so pulling it first surfaces a broken
+# runtime or a dead network in seconds rather than after a multi-GB download.
+MODELS=()
+(( WANT_EMBED )) && MODELS+=("$EMBED_MODEL")
+(( WANT_LLM ))   && MODELS+=("$LLM_MODEL")
+(( ${#MODELS[@]} )) || { echo "--llm-only and --embed-only cancel out." >&2; exit 2; }
 
 mkdir -p "$OUT"
 
@@ -32,7 +76,14 @@ mkdir -p "$OUT"
 ASSET="ollama-linux-amd64.tar.zst"
 TARBALL="$OUT/$ASSET"
 
-if [[ -f "$TARBALL" ]]; then
+if [[ -n "$RUNTIME_SRC" ]]; then
+  # A pull needs a runtime even when the bundle should not carry one. Point at
+  # the copy from the previous build and it stays outside $OUT: used to drive
+  # the download, never shipped.
+  [[ -f "$RUNTIME_SRC" ]] || { echo "No such runtime: $RUNTIME_SRC" >&2; exit 1; }
+  TARBALL="$RUNTIME_SRC"
+  echo "Reusing runtime (not bundled): $TARBALL"
+elif [[ -f "$TARBALL" ]]; then
   echo "Runtime already downloaded: $TARBALL"
 else
   if [[ -n "$OLLAMA_VERSION" ]]; then
@@ -110,7 +161,7 @@ done
   exit 1
 }
 
-for model in "$EMBED_MODEL" "$LLM_MODEL"; do
+for model in "${MODELS[@]}"; do
   echo
   echo "Pulling $model"
   "$OLLAMA_BIN" pull "$model"
@@ -126,17 +177,24 @@ unset SERVER_PID
 # which is a miserable thing to discover on the server.
 BLOB_COUNT="$(find "$OUT/models/blobs" -type f 2>/dev/null | wc -l)"
 BLOB_SIZE="$(du -sh "$OUT/models/blobs" 2>/dev/null | cut -f1)"
-if (( BLOB_COUNT < 2 )) || [[ ! -d "$OUT/models/manifests" ]]; then
-  echo "Model store looks incomplete: $BLOB_COUNT blobs, manifests $([[ -d "$OUT/models/manifests" ]] && echo present || echo MISSING)" >&2
+MIN_BLOBS=$(( ${#MODELS[@]} * 2 ))   # weights + params at the very least
+if (( BLOB_COUNT < MIN_BLOBS )) || [[ ! -d "$OUT/models/manifests" ]]; then
+  echo "Model store looks incomplete: $BLOB_COUNT blobs (expected at least $MIN_BLOBS), manifests $([[ -d "$OUT/models/manifests" ]] && echo present || echo MISSING)" >&2
   exit 1
 fi
 echo
 echo "Model store: $BLOB_COUNT blobs, $BLOB_SIZE"
 
 # ── 4. Record what went in ───────────────────────────────────────────────
+# llm= and embed= state the configuration the server should run, so they are
+# written whether or not this particular bundle carries the weights —
+# install_offline.sh turns them straight into pdas.env, and a missing line
+# there produces an empty setting rather than a default. contains= is the
+# honest record of what is actually in this directory.
 cat > "$OUT/MODELS.txt" <<EOF
 llm=$LLM_MODEL
 embed=$EMBED_MODEL
+contains=${MODELS[*]}
 ollama_client=$CLIENT_VERSION
 fetched=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 EOF
