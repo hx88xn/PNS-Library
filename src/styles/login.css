@@ -121,12 +121,16 @@
  * at (0,1,1), which outranks a bare `.hl-section` at (0,1,0) and would leave
  * this doing nothing at all. */
 .hull-lines .hl-section,
-.hull-lines .hl-deck {
+.hull-lines .hl-deck,
+.hull-lines .hl-knuckle {
   vector-effect: none;
 }
 
+/* The plate carries its own squared-paper pattern behind this, which the grid
+   at its old weight disappeared into — leaving the sections with no datum to
+   be read against. Just enough lift to separate the two. */
 .hl-grid line {
-  stroke: rgba(255, 255, 255, 0.13);
+  stroke: rgba(255, 255, 255, 0.18);
   stroke-width: 1;
   stroke-dasharray: 2 5;
 }
@@ -153,6 +157,13 @@
 .hl-deck {
   stroke: rgba(255, 255, 255, 0.55);
   stroke-width: 1.35;
+}
+
+/* Lighter than the sheer: it is a real line on the sheet, but it crosses the
+   after sections, and at the sheer's weight it read as one of them. */
+.hl-knuckle {
+  stroke: rgba(255, 255, 255, 0.4);
+  stroke-width: 1.1;
 }
 
 .hl-ticks line {
@@ -191,6 +202,13 @@
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
   animation: loft 900ms var(--ease) 1.55s both;
+}
+
+/* After the sheer it grows out of, not with it. */
+.hull-lines--hero .hl-knuckle {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: loft 700ms var(--ease) 1.95s both;
 }
 
 /* ── The ship under way ─────────────────────────────────────────────────
@@ -236,7 +254,8 @@
  * instead makes it look like a drawing being tilted. */
 .hull-lines--hero .hl-hull {
   transform-box: view-box;
-  transform-origin: 310px 174.7px;
+  /* BASE − D × DWL in the component's own units: 330 − 252 × 0.54. */
+  transform-origin: 310px 193.9px;
   animation: seaway 9s ease-in-out 2.4s infinite;
 }
 
@@ -286,7 +305,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .hull-lines--hero .hl-section,
-  .hull-lines--hero .hl-deck {
+  .hull-lines--hero .hl-deck,
+  .hull-lines--hero .hl-knuckle {
     stroke-dashoffset: 0;
   }
 

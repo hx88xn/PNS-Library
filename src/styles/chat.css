@@ -56,6 +56,9 @@
 .hull-lines--ghost .hl-deck {
   stroke: rgba(23, 84, 140, 0.28);
 }
+.hull-lines--ghost .hl-knuckle {
+  stroke: rgba(23, 84, 140, 0.2);
+}
 .hull-lines--ghost .hl-ticks line {
   stroke: rgba(23, 84, 140, 0.18);
 }
