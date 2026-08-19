@@ -90,185 +90,22 @@
   animation: fade 900ms var(--ease) 1.5s both;
 }
 
-/* ── The body plan ─────────────────────────────────────────────────────── */
+/* ── The office crest ──────────────────────────────────────────────────── */
 
-.hull-lines {
+.login-crest {
   width: 100%;
-  max-width: 560px;
+  max-width: 320px;
   max-height: 100%;
-}
+  object-fit: contain;
 
-.hull-lines line,
-.hull-lines path {
-  vector-effect: non-scaling-stroke;
-}
-
-/* Except the two that are drawn on.
- *
- * Chrome does not apply pathLength normalisation to stroke-dasharray on an
- * element with non-scaling-stroke: the dash resolves against device pixels
- * instead, so how much of each path gets painted depends on the viewport and
- * the display's pixel ratio. That left every section stopping in mid-air below
- * a sheer line it never reached. Verified by elimination — the drawing comes
- * out whole with the dash removed, and equally whole with the dash kept and
- * only this property dropped.
- *
- * The cost is that these strokes now scale with the drawing. At the login
- * plate that is 1.35 against a 0.9 factor, which is not a visible difference;
- * a body plan that draws itself completely is.
- */
-/* Scoped through .hull-lines deliberately: the rule above is `.hull-lines path`
- * at (0,1,1), which outranks a bare `.hl-section` at (0,1,0) and would leave
- * this doing nothing at all. */
-.hull-lines .hl-section,
-.hull-lines .hl-deck {
-  vector-effect: none;
-}
-
-.hl-grid line {
-  stroke: rgba(255, 255, 255, 0.13);
-  stroke-width: 1;
-  stroke-dasharray: 2 5;
-}
-
-.hl-dwl {
-  stroke: var(--sonar);
-  stroke-width: 1;
+  /* Held back deliberately. The crest is what the plate is about, but the
+     eye's work on this screen is on the form to the right, and at full
+     strength a white-centred mark on a dark plate pulls hard enough to take
+     that over. At this weight the navy comes through it and it reads as part
+     of the sheet rather than as something laid on top of it. */
   opacity: 0.5;
-  stroke-dasharray: 14 6;
-}
 
-.hl-centreline {
-  stroke: rgba(255, 255, 255, 0.42);
-  stroke-width: 1;
-  stroke-dasharray: 9 4 2 4;
-}
-
-.hl-section {
-  stroke: rgba(198, 226, 245, 0.82);
-  stroke-width: 1.35;
-  stroke-linecap: round;
-}
-
-.hl-deck {
-  stroke: rgba(255, 255, 255, 0.55);
-  stroke-width: 1.35;
-}
-
-.hl-ticks line {
-  stroke: rgba(255, 255, 255, 0.3);
-  stroke-width: 1;
-}
-
-/* Draw the sections on, station by station, the way they are lofted.
- *
- * The dash is 1 because the paths carry pathLength="1", not because they are
- * one unit long. A fixed length cannot work here: these paths run 317–382
- * units and every one of them is drawn with vector-effect: non-scaling-stroke,
- * under which the dash resolves against device pixels rather than user units.
- * The covered length then depends on the viewport and the display's pixel
- * ratio — at 2x it came to roughly 234 units, which finished the sheer lines
- * (167) and cut every section off at about three fifths, leaving a fan of
- * curves stopping in mid-air below a deck line they never reached.
- */
-.hull-lines--hero .hl-section {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  animation: loft 1100ms var(--ease) both;
-}
-
-.hull-lines--hero .hl-grid,
-.hull-lines--hero .hl-ticks,
-.hull-lines--hero .hl-centreline {
-  animation: fade 900ms ease both;
-}
-
-.hull-lines--hero .hl-dwl {
-  animation: fade 900ms ease 1.3s both;
-}
-
-.hull-lines--hero .hl-deck {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  animation: loft 900ms var(--ease) 1.55s both;
-}
-
-/* ── The ship under way ─────────────────────────────────────────────────
- *
- * Everything below starts once the loft has finished drawing, so the plan is
- * laid down first and only then comes alive. Slow on purpose: this sits behind
- * a login form, and anything quick enough to read as animation would compete
- * with the field the eye is meant to be on.
- */
-
-.hl-wave {
-  stroke: var(--sonar);
-  stroke-width: 1;
-  fill: none;
-}
-
-/* Each wave shifts by exactly one of its own wavelengths, which is why the
- * loop does not jump: one wavelength along, the water is the same water. */
-.hull-lines--hero .hl-wave--a {
-  opacity: 0.5;
-  animation: fade 1s ease 1.9s both, stream-a 7s linear 1.9s infinite;
-}
-
-.hull-lines--hero .hl-wave--b {
-  opacity: 0.32;
-  animation: fade 1s ease 2.1s both, stream-b 11s linear 2.1s infinite;
-}
-
-@keyframes stream-a {
-  to {
-    transform: translateX(-124px);
-  }
-}
-
-@keyframes stream-b {
-  to {
-    transform: translateX(-186px);
-  }
-}
-
-/* Heave and roll. The origin is the centreline at the waterline — a hull rolls
- * about roughly there, and rotating about the middle of the bounding box
- * instead makes it look like a drawing being tilted. */
-.hull-lines--hero .hl-hull {
-  transform-box: view-box;
-  transform-origin: 310px 174.7px;
-  animation: seaway 9s ease-in-out 2.4s infinite;
-}
-
-/* Asymmetric on purpose: an even side-to-side rock reads as a metronome.
- * A long roll one way and a shorter recovery the other reads as water.
- *
- * These numbers started roughly a third of their current size, out of a worry
- * about competing with the login form beside it. At that amplitude the deck
- * edge travelled about a pixel and a half over thirteen seconds, which is to
- * say it did not read as motion at all — the drawing simply looked static.
- * A roll has to be seen to be worth having.
- */
-@keyframes seaway {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  22% {
-    transform: translateY(-4.5px) rotate(1.35deg);
-  }
-  46% {
-    transform: translateY(2.4px) rotate(-0.5deg);
-  }
-  70% {
-    transform: translateY(-2.8px) rotate(-1.15deg);
-  }
-}
-
-@keyframes loft {
-  to {
-    stroke-dashoffset: 0;
-  }
+  animation: fade 1100ms var(--ease) 220ms both;
 }
 
 @keyframes fade {
@@ -285,16 +122,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hull-lines--hero .hl-section,
-  .hull-lines--hero .hl-deck {
-    stroke-dashoffset: 0;
-  }
-
-  /* The sea is the part of this that never stops, so it is the part that most
-     needs to. The water stays drawn — just still. */
-  .hull-lines--hero .hl-hull,
-  .hull-lines--hero .hl-wave--a,
-  .hull-lines--hero .hl-wave--b {
+  .login-crest {
     animation: none;
   }
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import HullLines from '../components/HullLines.jsx'
+import crest from '../assets/pdw-crest.png'
 import Mark from '../components/Mark.jsx'
 import WindowControls from '../components/WindowControls.jsx'
 import * as api from '../lib/api.js'
@@ -61,7 +61,7 @@ export default function Login({ onAuthenticated }) {
           before signing in. */}
       <WindowControls className="window-controls--login" />
 
-      {/* Left: the sheet. The body plan draws itself as the terminal comes up. */}
+      {/* Left: the sheet, under the office's own crest. */}
       <section className="login-plate">
         <div className="login-plate-grid" aria-hidden="true" />
 
@@ -77,7 +77,7 @@ export default function Login({ onAuthenticated }) {
         </header>
 
         <div className="login-figure">
-          <HullLines variant="hero" />
+          <img className="login-crest" src={crest} alt="" />
         </div>
       </section>
 

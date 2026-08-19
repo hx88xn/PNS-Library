@@ -33,31 +33,10 @@
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 460px;
+  width: 210px;
   max-width: 100%;
-  opacity: 0.5;
+  opacity: 0.1;
   pointer-events: none;
-}
-
-.hull-lines--ghost .hl-grid line {
-  stroke: rgba(23, 84, 140, 0.1);
-}
-.hull-lines--ghost .hl-dwl {
-  stroke: rgba(53, 198, 224, 0.45);
-  stroke-dasharray: 12 6;
-}
-.hull-lines--ghost .hl-centreline {
-  stroke: rgba(23, 84, 140, 0.2);
-}
-.hull-lines--ghost .hl-section {
-  stroke: rgba(23, 84, 140, 0.22);
-  stroke-width: 1.1;
-}
-.hull-lines--ghost .hl-deck {
-  stroke: rgba(23, 84, 140, 0.28);
-}
-.hull-lines--ghost .hl-ticks line {
-  stroke: rgba(23, 84, 140, 0.18);
 }
 
 .chat-empty-title {

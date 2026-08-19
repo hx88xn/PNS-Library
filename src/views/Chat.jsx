@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { IconSend, IconDoc, IconChevron, IconThink } from '../components/Icons.jsx'
-import HullLines from '../components/HullLines.jsx'
+import crest from '../assets/pdw-crest.png'
 import * as api from '../lib/api.js'
 
 export default function Chat({
@@ -99,7 +99,7 @@ export default function Chat({
         <div className="chat-inner">
           {empty ? (
             <div className="chat-empty">
-              <HullLines variant="ghost" className="chat-empty-figure" />
+              <img className="chat-empty-figure" src={crest} alt="" />
               <h2 className="chat-empty-title">Ask the library</h2>
 
               {openers === null ? (

@@ -77,13 +77,16 @@ find "$STAGE/app" -name '__pycache__' -type d -prune -exec rm -rf {} + 2>/dev/nu
 
 # ── Install machinery ────────────────────────────────────────────────────
 # preflight.sh ships too: the runbook says to run it on the target before
-# installing, and the target has no way to fetch it.
-cp "$ROOT/deploy/install_offline.sh" "$ROOT/deploy/preflight.sh" "$STAGE/"
+# installing, and the target has no way to fetch it. verify_models.sh likewise
+# — corrupt weights answer fluently in nonsense, and the operator needs to be
+# able to rule that out on the box rather than infer it from bad answers.
+cp "$ROOT/deploy/install_offline.sh" "$ROOT/deploy/preflight.sh" \
+   "$ROOT/deploy/verify_models.sh" "$STAGE/"
 cp "$ROOT/deploy/pdas.service" "$ROOT/deploy/ollama.service" "$STAGE/"
 for doc in README-DEPLOY.md RUNBOOK.md; do
   cp "$ROOT/$doc" "$STAGE/" 2>/dev/null || true
 done
-chmod +x "$STAGE/install_offline.sh" "$STAGE/preflight.sh"
+chmod +x "$STAGE/install_offline.sh" "$STAGE/preflight.sh" "$STAGE/verify_models.sh"
 
 mkdir -p "$STAGE/client"
 if ! find "$STAGE/client" -name '*.exe' | grep -q .; then
@@ -103,7 +106,7 @@ fi
 
 # ── App archive: small, transferred often ────────────────────────────────
 # Checksums for just the app files, so this archive verifies on its own.
-( cd "$STAGE" && find app client install_offline.sh preflight.sh *.service *.md -type f 2>/dev/null \
+( cd "$STAGE" && find app client install_offline.sh preflight.sh verify_models.sh *.service *.md -type f 2>/dev/null \
     | sort | xargs sha256sum > APP_SHA256SUMS )
 
 DOCS=()
@@ -113,7 +116,8 @@ done
 
 echo "Creating $(basename "$APP_ARCHIVE")"
 tar -czf "$APP_ARCHIVE" -C "$STAGE" \
-  app client install_offline.sh preflight.sh pdas.service ollama.service \
+  app client install_offline.sh preflight.sh verify_models.sh \
+  pdas.service ollama.service \
   APP_SHA256SUMS "${DOCS[@]}"
 
 echo "  $(du -h "$APP_ARCHIVE" | cut -f1)"
