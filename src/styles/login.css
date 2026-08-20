@@ -73,60 +73,6 @@
   color: rgba(232, 240, 247, 0.72);
 }
 
-.login-figure {
-  position: relative;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  min-height: 0;
-  padding: 22px 0 10px;
-}
-
-.login-figure-caption {
-  margin: 4px 0 0;
-  color: rgba(232, 240, 247, 0.38);
-  animation: fade 900ms var(--ease) 1.5s both;
-}
-
-/* ── The office crest ──────────────────────────────────────────────────── */
-
-.login-crest {
-  width: 100%;
-  max-width: 320px;
-  max-height: 100%;
-  object-fit: contain;
-
-  /* Held back deliberately. The crest is what the plate is about, but the
-     eye's work on this screen is on the form to the right, and at full
-     strength a white-centred mark on a dark plate pulls hard enough to take
-     that over. At this weight the navy comes through it and it reads as part
-     of the sheet rather than as something laid on top of it. */
-  opacity: 0.5;
-
-  animation: fade 1100ms var(--ease) 220ms both;
-}
-
-@keyframes fade {
-  from {
-    opacity: 0;
-  }
-}
-
-@keyframes rise {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .login-crest {
-    animation: none;
-  }
-}
-
 /* ── Right: the gate ───────────────────────────────────────────────────── */
 
 .login-gate {

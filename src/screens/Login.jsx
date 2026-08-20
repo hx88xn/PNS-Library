@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import crest from '../assets/pdw-crest.png'
 import Mark from '../components/Mark.jsx'
 import WindowControls from '../components/WindowControls.jsx'
 import * as api from '../lib/api.js'
@@ -61,7 +60,7 @@ export default function Login({ onAuthenticated }) {
           before signing in. */}
       <WindowControls className="window-controls--login" />
 
-      {/* Left: the sheet, under the office's own crest. */}
+      {/* Left: the sheet. */}
       <section className="login-plate">
         <div className="login-plate-grid" aria-hidden="true" />
 
@@ -75,10 +74,6 @@ export default function Login({ onAuthenticated }) {
             </h1>
           </div>
         </header>
-
-        <div className="login-figure">
-          <img className="login-crest" src={crest} alt="" />
-        </div>
       </section>
 
       {/* Right: the gate. */}
